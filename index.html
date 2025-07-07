@@ -17,7 +17,7 @@
                 <div class="logo-icon">🌱</div>
                 <div class="header-title">
                     <h1 class="main-title">Smart Drip Irrigation System</h1>
-                    <p class="subtitle">Kelurahan Tanah Jaya - Water Volume and Soil Moisture Dashboard</p>
+                    <p class="subtitle">Kelurahan Tanah Jaya - Water Level & Soil Moisture Monitoring</p>
                 </div>
             </div>
             <div class="header-right">
@@ -122,6 +122,11 @@
                 <div class="metric-description">
                     <div class="status-dot-small"></div>
                     <span>Soil moisture content</span>
+                </div>
+                <div class="water-level-controls" style="margin-top: 16px;">
+                    <button class="control-btn danger" onclick="soilMoistureManager?.emptyMoisture()">
+                        🗑️ Kosongkan Moisture
+                    </button>
                 </div>
                 <!-- Weather control will be inserted here by JavaScript -->
             </div>
@@ -234,7 +239,7 @@
                 <div class="control-item">
                     <h4>Next Scheduled</h4>
                     <div class="control-value" id="next-schedule">06:00</div>
-                    <p class="control-description">Drip irrigation otomatis</p>
+                    <p class="control-description">Menunggu sinkronisasi...</p>
                 </div>
             </div>
         </div>
