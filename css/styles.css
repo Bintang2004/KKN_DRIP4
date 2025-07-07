@@ -1499,7 +1499,7 @@ body {
 .intelligent-fallback-info {
   background: linear-gradient(135deg, var(--bg-gray-50), #fafafa);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 16px;
   margin-top: 20px;
   border: 1px solid var(--border-gray);
   transition: all 0.3s ease;
@@ -1515,32 +1515,26 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--border-gray);
+  margin-bottom: 12px;
 }
 
 .fallback-icon {
-  font-size: 24px;
+  font-size: 20px;
   background: linear-gradient(135deg, var(--accent-blue), #2563eb);
-  padding: 8px;
+  padding: 6px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   box-shadow: var(--shadow-sm);
 }
 
 .fallback-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-dark);
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .fallback-description {
@@ -1549,52 +1543,21 @@ body {
 }
 
 .fallback-description p {
-  margin-bottom: 16px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.fallback-features {
-  display: grid;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.feature-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: white;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-gray);
+  margin-bottom: 12px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--text-dark);
-  transition: all 0.2s ease;
-}
-
-.feature-item:hover {
-  background: var(--bg-gray-50);
-  transform: translateX(4px);
-  box-shadow: var(--shadow-sm);
-}
-
-.feature-icon {
-  font-size: 16px;
-  width: 20px;
-  text-align: center;
+  font-weight: 500;
+  color: var(--text-gray);
 }
 
 .fallback-status {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 8px 12px;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
   border: 1px solid rgba(16, 185, 129, 0.3);
   border-radius: var(--radius-lg);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--success-green);
 }
