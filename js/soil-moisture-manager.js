@@ -314,13 +314,15 @@ class SoilMoistureManager {
         // Update soil moisture value
         const soilMoistureValue = document.getElementById('soil-moisture-value');
         if (soilMoistureValue) {
-            soilMoistureValue.textContent = `${this.settings.currentMoisture.toFixed(1)}%`;
+            const moisture = typeof this.settings.currentMoisture === 'number' ? this.settings.currentMoisture : 0;
+            soilMoistureValue.textContent = `${moisture.toFixed(1)}%`;
         }
         
         // Update status badge
         const statusBadge = document.querySelector('.metric-card:nth-child(2) .status-badge');
         if (statusBadge) {
-            const range = this.getMoistureRange(this.settings.currentMoisture);
+            const moisture = typeof this.settings.currentMoisture === 'number' ? this.settings.currentMoisture : 0;
+            const range = this.getMoistureRange(moisture);
             statusBadge.textContent = range.status.toUpperCase();
             statusBadge.className = `status-badge ${range.status}`;
         }
