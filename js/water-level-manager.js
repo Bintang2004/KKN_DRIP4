@@ -341,9 +341,67 @@ class WaterVolumeManager {
         const scheduleCheck = setInterval(() => {
             const now = new Date();
             if (now.getHours() === hours && now.getMinutes() === minutes && now.getSeconds() === 0) {
-                if (this.settings.autoIrrigation) {
-                    this.performIrrigation();
+                if (this.settings.autoIrrigation && this.settings.currentLevel >= this.settings.irrigationVolume) {
+                    // Check soil moisture before irrigating
+                    const shouldIrrigate = window.soilMoistureManager ? 
+                        window.soilMoistureManager.shouldTriggerIrrigation() : true;
+                    
+                    if (shouldIrrigate) {
+                        this.showNotification(`🕐 Penyiraman terjadwal ${timeString} dimulai`, 'success');
+                        this.performIrrigation();
+                    } else {
+                        const currentMoisture = window.soilMoistureManager.getCurrentMoistureStatus().moisture;
+                        this.showNotification(`🕐 Penyiraman terjadwal ${timeString} dilewati - tanah masih lembap (${currentMoisture.toFixed(1)}%)`, 'info');
+                    }
+                } else {
+                    const reason = !this.settings.autoIrrigation ? 'auto irrigation dinonaktifkan' : 'air tidak cukup';
+                    this.showNotification(`🕐 Penyiraman terjadwal ${timeString} gagal - ${reason}`, 'error');
                 }
+            }
+        }, 1000);
+        
+        this.scheduledIntervals.push(scheduleCheck);
+    }
+
+    // Enhanced irrigation method with soil moisture sync
+    performScheduledIrrigation(timeString) {
+        // Check water level
+        if (this.settings.currentLevel < this.settings.irrigationVolume) {
+            this.showNotification(`🕐 Penyiraman terjadwal ${timeString} gagal - air tidak cukup`, 'error');
+            return false;
+        }
+        
+        // Check if auto irrigation is enabled
+        if (!this.settings.autoIrrigation) {
+            this.showNotification(`🕐 Penyiraman terjadwal ${timeString} dilewati - auto irrigation dinonaktifkan`, 'info');
+            return false;
+        }
+        
+        // Check soil moisture level
+        if (window.soilMoistureManager) {
+            const moistureStatus = window.soilMoistureManager.getCurrentMoistureStatus();
+            
+            // Only irrigate if soil moisture is below 35%
+            if (moistureStatus.moisture >= 35) {
+                this.showNotification(`🕐 Penyiraman terjadwal ${timeString} dilewati - tanah masih lembap (${moistureStatus.moisture.toFixed(1)}%)`, 'info');
+                return false;
+            }
+        }
+        
+        // Perform irrigation
+        this.showNotification(`🕐 Penyiraman terjadwal ${timeString} dimulai - ${this.settings.irrigationVolume}L`, 'success');
+        this.performIrrigation();
+        return true;
+    }
+
+    // Override original scheduleIrrigation to use enhanced method
+    scheduleIrrigation(timeString) {
+        const [hours, minutes] = timeString.split(':').map(Number);
+        
+        const scheduleCheck = setInterval(() => {
+            const now = new Date();
+            if (now.getHours() === hours && now.getMinutes() === minutes && now.getSeconds() === 0) {
+                this.performIrrigation();
             }
         }, 1000);
         
@@ -371,8 +429,45 @@ class WaterVolumeManager {
         this.saveSettings();
         this.scheduleIrrigations();
         
+        // Force sync with soil moisture manager immediately
         // Sync with soil moisture manager
         this.syncWithSoilManager();
+        
+        // Update next schedule display
+        this.updateNextScheduleDisplay();
+    }
+
+    updateNextScheduleDisplay() {
+        const nextScheduleElement = document.getElementById('next-schedule');
+        if (!nextScheduleElement) return;
+        
+        const now = new Date();
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        
+        // Get enabled schedules and convert to minutes
+        const enabledSchedules = this.settings.schedules
+            .filter(schedule => schedule.enabled)
+            .map(schedule => {
+                const [hours, minutes] = schedule.time.split(':').map(Number);
+                return { time: schedule.time, minutes: hours * 60 + minutes };
+            })
+            .sort((a, b) => a.minutes - b.minutes);
+        
+        if (enabledSchedules.length === 0) {
+            nextScheduleElement.textContent = 'Tidak ada jadwal';
+            return;
+        }
+        
+        // Find next schedule
+        let nextSchedule = enabledSchedules.find(schedule => schedule.minutes > currentTime);
+        
+        // If no schedule today, use first schedule tomorrow
+        if (!nextSchedule) {
+            nextSchedule = enabledSchedules[0];
+            nextScheduleElement.textContent = `${nextSchedule.time} (besok)`;
+        } else {
+            nextScheduleElement.textContent = nextSchedule.time;
+        }
     }
 
     showNotification(message, type) {
