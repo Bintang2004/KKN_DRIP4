@@ -190,6 +190,16 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
+.logo-citta {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-lg);
+  margin-right: 16px;
+}
+
 /* ========== TIME CONTROLS ========== */
 .time-controls {
   display: flex;
@@ -1120,6 +1130,10 @@ body {
 
 .control-btn.success {
   background: linear-gradient(135deg, var(--success-green), #059669);
+}
+
+.control-btn.warning {
+  background: linear-gradient(135deg, var(--warning-yellow), #f59e0b);
 }
 
 /* ========== STATUS BADGE VARIANTS ========== */
