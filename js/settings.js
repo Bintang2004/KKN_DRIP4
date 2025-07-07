@@ -80,6 +80,11 @@ function updateControlPanelDisplay() {
     }
     if (duration) {
         duration.textContent = `${currentSettings.irrigation.duration} min`;
+        
+        // Re-sync both managers after reset
+        if (window.waterVolumeManager && window.soilMoistureManager) {
+            window.waterVolumeManager.syncWithSoilManager();
+        }
     }
 }
 
@@ -245,9 +250,22 @@ function resetSettings() {
             window.soilMoistureManager.updateSettings({
                 irrigationDuration: duration,
                 scheduledIrrigations: [
-                    ...(schedule1Enabled ? [schedule1] : []),
-                    ...(schedule2Enabled ? [schedule2] : [])
+                    schedule1,
+                    schedule2
                 ]
+            });
+        }
+        
+        // Sync irrigation schedules between both managers
+        if (window.waterVolumeManager && window.soilMoistureManager) {
+            const activeSchedules = [
+                ...(schedule1Enabled ? [schedule1] : []),
+                ...(schedule2Enabled ? [schedule2] : [])
+            ];
+            
+            window.soilMoistureManager.updateSettings({
+                scheduledIrrigations: activeSchedules,
+                irrigationDuration: duration
             });
         }
         

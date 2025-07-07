@@ -111,6 +111,9 @@ class SoilMoistureManager {
         // Listen for weather updates from WeatherAPI
         this.setupWeatherListener();
         
+        // Setup irrigation synchronization with water volume manager
+        this.setupIrrigationSync();
+        
         // Force another update after 1 second to ensure everything is loaded
         setTimeout(() => {
             this.updateDisplay();
@@ -137,6 +140,54 @@ class SoilMoistureManager {
             `;
             
             soilCard.appendChild(weatherControl);
+        }
+    }
+
+    setupIrrigationSync() {
+        // Wait for water volume manager to be available
+        const checkWaterManager = () => {
+            if (window.waterVolumeManager) {
+                this.syncWithWaterManager();
+            } else {
+                setTimeout(checkWaterManager, 500);
+            }
+        };
+        checkWaterManager();
+    }
+
+    syncWithWaterManager() {
+        // Override water volume manager's performIrrigation to sync with soil moisture
+        const originalPerformIrrigation = window.waterVolumeManager.performIrrigation.bind(window.waterVolumeManager);
+        
+        window.waterVolumeManager.performIrrigation = () => {
+            // Check if water is sufficient
+            if (window.waterVolumeManager.settings.currentLevel >= window.waterVolumeManager.settings.irrigationVolume) {
+                // Perform water volume irrigation
+                originalPerformIrrigation();
+                
+                // Start soil moisture irrigation
+                this.startIrrigation();
+                
+                // Show combined notification
+                this.showNotification(`🌱 Penyiraman manual dimulai - ${window.waterVolumeManager.settings.irrigationVolume}L digunakan`, 'success');
+            } else {
+                this.showNotification('Air tidak cukup untuk penyiraman!', 'error');
+            }
+        };
+        
+        // Sync scheduled irrigation times
+        this.syncScheduledIrrigations();
+    }
+
+    syncScheduledIrrigations() {
+        // Get schedules from water volume manager
+        if (window.waterVolumeManager && window.waterVolumeManager.settings.schedules) {
+            const activeSchedules = window.waterVolumeManager.settings.schedules
+                .filter(schedule => schedule.enabled)
+                .map(schedule => schedule.time);
+            
+            this.settings.scheduledIrrigations = activeSchedules;
+            this.saveSettings();
         }
     }
 
@@ -186,6 +237,9 @@ class SoilMoistureManager {
         const now = new Date();
         const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
         
+        // Sync schedules with water volume manager first
+        this.syncScheduledIrrigations();
+        
         // Check if it's time for scheduled irrigation
         if (this.settings.scheduledIrrigations.includes(currentTime)) {
             const lastCheck = new Date(this.settings.lastIrrigationCheck);
@@ -198,17 +252,22 @@ class SoilMoistureManager {
                 
                 // Check if water level is sufficient and auto irrigation is enabled
                 if (window.waterVolumeManager && 
-                    window.waterVolumeManager.settings.currentLevel >= window.waterVolumeManager.settings.irrigationVolume) {
+                    window.waterVolumeManager.settings.currentLevel >= window.waterVolumeManager.settings.irrigationVolume &&
+                    window.waterVolumeManager.settings.autoIrrigation) {
                     
                     // Check if soil moisture is low enough to warrant irrigation
-                    if (this.settings.currentMoisture < 40) {
-                        this.startIrrigation();
-                        this.showNotification(`🕐 Penyiraman terjadwal ${currentTime} dimulai`, 'success');
+                    if (this.settings.currentMoisture < 35) {
+                        // Trigger irrigation through water volume manager to maintain sync
+                        window.waterVolumeManager.performIrrigation();
+                        this.showNotification(`🕐 Penyiraman terjadwal ${currentTime} dimulai - ${window.waterVolumeManager.settings.irrigationVolume}L`, 'success');
                     } else {
-                        this.showNotification(`🕐 Penyiraman terjadwal ${currentTime} dilewati - tanah masih lembap`, 'info');
+                        this.showNotification(`🕐 Penyiraman terjadwal ${currentTime} dilewati - tanah masih lembap (${this.settings.currentMoisture.toFixed(1)}%)`, 'info');
                     }
                 } else {
-                    this.showNotification(`🕐 Penyiraman terjadwal ${currentTime} gagal - air tidak cukup`, 'error');
+                    const reason = !window.waterVolumeManager ? 'sistem tidak tersedia' : 
+                                 window.waterVolumeManager.settings.currentLevel < window.waterVolumeManager.settings.irrigationVolume ? 'air tidak cukup' :
+                                 'auto irrigation dinonaktifkan';
+                    this.showNotification(`🕐 Penyiraman terjadwal ${currentTime} gagal - ${reason}`, 'error');
                 }
             }
         }
@@ -237,7 +296,10 @@ class SoilMoistureManager {
         
         this.saveSettings();
         
-        this.showNotification(`🌱 Drip irrigation dimulai - target ${targetMoisture.toFixed(1)}% (${duration} menit)`, 'success');
+        // Only show notification if not triggered by water volume manager
+        if (!window.waterVolumeManager || !window.waterVolumeManager.settings.isIrrigating) {
+            this.showNotification(`🌱 Drip irrigation dimulai - target ${targetMoisture.toFixed(1)}% (${duration} menit)`, 'success');
+        }
         
         // Stop irrigation after duration
         setTimeout(() => {
@@ -258,7 +320,11 @@ class SoilMoistureManager {
         this.saveSettings();
         
         const finalMoisture = this.settings.currentMoisture.toFixed(1);
-        this.showNotification(`🌱 Drip irrigation selesai - kelembaban: ${finalMoisture}%`, 'success');
+        
+        // Only show notification if not managed by water volume manager
+        if (!window.waterVolumeManager || !window.waterVolumeManager.settings.isIrrigating) {
+            this.showNotification(`🌱 Drip irrigation selesai - kelembaban: ${finalMoisture}%`, 'success');
+        }
         
         // Log the irrigation event
         this.logMoisture('irrigation_complete');
@@ -284,6 +350,15 @@ class SoilMoistureManager {
         }
         
         this.showNotification(`Cuaca diubah ke ${weather}`, 'success');
+    }
+
+    emptyMoisture() {
+        this.settings.currentMoisture = 0;
+        this.settings.moistureDecreaseAccumulator = 0;
+        this.updateDisplay();
+        this.saveSettings();
+        this.logMoisture('manual_empty');
+        this.showNotification('Kelembaban tanah dikosongkan (0%)', 'success');
     }
 
     applyRainEffect() {
@@ -765,17 +840,15 @@ class SoilMoistureManager {
         // Update scheduled irrigation times
         if (newSettings.scheduledIrrigations) {
             this.settings.scheduledIrrigations = newSettings.scheduledIrrigations;
+        } else if (newSettings.schedules) {
+            // Handle water volume manager schedule format
+            this.settings.scheduledIrrigations = newSettings.schedules
+                .filter(schedule => schedule.enabled)
+                .map(schedule => schedule.time);
         }
         
         this.saveSettings();
         this.updateDisplay();
-    }
-
-    // Manual irrigation trigger (for testing)
-    triggerManualIrrigation() {
-        if (!this.settings.isIrrigating) {
-            this.startIrrigation();
-        }
     }
 
     // Get current moisture status for other systems
@@ -808,6 +881,23 @@ class SoilMoistureManager {
             timeUntilNextDecrease: Math.max(0, evaporationParams.interval - this.settings.moistureDecreaseAccumulator),
             moistureRange: this.getMoistureRange(this.settings.currentMoisture),
             lastUpdate: this.settings.lastUpdate
+        };
+    }
+
+    // Check if irrigation should be triggered based on moisture level
+    shouldTriggerIrrigation() {
+        return this.settings.currentMoisture < 35 && !this.settings.isIrrigating;
+    }
+
+    // Get irrigation effectiveness (how much moisture will increase)
+    getIrrigationEffectiveness() {
+        const currentMoisture = this.settings.currentMoisture;
+        const targetMoisture = Math.min(40, Math.max(25, currentMoisture + 12));
+        return {
+            currentMoisture: currentMoisture,
+            targetMoisture: targetMoisture,
+            increase: targetMoisture - currentMoisture,
+            duration: this.settings.irrigationDuration
         };
     }
 }

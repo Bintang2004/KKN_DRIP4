@@ -22,6 +22,9 @@ class WaterVolumeManager {
         
         // Initialize with current settings from localStorage
         this.syncWithGlobalSettings();
+        
+        // Setup soil moisture synchronization
+        this.setupSoilMoistureSync();
     }
 
     loadSettings() {
@@ -61,6 +64,32 @@ class WaterVolumeManager {
                     this.settings.currentLevel = this.settings.tankCapacity * 0.8; // Default to 80%
                 }
             }
+        }
+    }
+
+    setupSoilMoistureSync() {
+        // Wait for soil moisture manager to be available
+        const checkSoilManager = () => {
+            if (window.soilMoistureManager) {
+                this.syncWithSoilManager();
+            } else {
+                setTimeout(checkSoilManager, 500);
+            }
+        };
+        checkSoilManager();
+    }
+
+    syncWithSoilManager() {
+        // Sync irrigation schedules
+        if (window.soilMoistureManager) {
+            const activeSchedules = this.settings.schedules
+                .filter(schedule => schedule.enabled)
+                .map(schedule => schedule.time);
+            
+            window.soilMoistureManager.updateSettings({
+                scheduledIrrigations: activeSchedules,
+                irrigationDuration: this.settings.irrigationDuration || 15
+            });
         }
     }
 
@@ -341,6 +370,9 @@ class WaterVolumeManager {
         this.updateStatus();
         this.saveSettings();
         this.scheduleIrrigations();
+        
+        // Sync with soil moisture manager
+        this.syncWithSoilManager();
     }
 
     showNotification(message, type) {
