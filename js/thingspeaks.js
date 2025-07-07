@@ -137,7 +137,19 @@ function loadData(period) {
     ];
 
     fields.forEach(field => {
-        if (period === 'monthly') {
+        if (field.fieldNumber === 1) {
+            // Use water level manager for water level data
+            if (window.waterLevelManager) {
+                const data = window.waterLevelManager.getChartData(period);
+                const ctx = document.getElementById(field.id).getContext('2d');
+                if (charts[field.id]) {
+                    charts[field.id].destroy();
+                }
+                charts[field.id] = createChart(ctx, data, field.color, labels[period].unit, labels[period].format, field.title);
+                updateAverage(field.averageId, data, 'L');
+                document.getElementById(field.id).parentElement.querySelector('.chart-message').textContent = '';
+            }
+        } else if (period === 'monthly') {
             getMonthlyAverages(field.fieldNumber, function(error, data) {
                 if (error) {
                     document.getElementById(field.id).parentElement.querySelector('.chart-message').textContent = `Gagal mengambil data: ${error.message}. Periksa koneksi internet atau coba lagi nanti.`;

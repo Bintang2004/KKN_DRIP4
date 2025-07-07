@@ -1,9 +1,13 @@
 // Settings Management
 let currentSettings = {
     waterLevel: {
-        min: 10,
-        max: 80,
-        alert: 15
+        tankCapacity: 100,
+        irrigationVolume: 7,
+        lowLevelThreshold: 20,
+        schedule1: '07:00',
+        schedule2: '16:00',
+        schedule1Enabled: true,
+        schedule2Enabled: true
     },
     soilMoisture: {
         min: 40,
@@ -37,9 +41,13 @@ function saveSettingsToStorage() {
 // Update UI with current settings
 function updateSettingsUI() {
     // Water Level settings
-    document.getElementById('waterLevelMin').value = currentSettings.waterLevel.min;
-    document.getElementById('waterLevelMax').value = currentSettings.waterLevel.max;
-    document.getElementById('waterLevelAlert').value = currentSettings.waterLevel.alert;
+    document.getElementById('tankCapacity').value = currentSettings.waterLevel.tankCapacity;
+    document.getElementById('irrigationVolume').value = currentSettings.waterLevel.irrigationVolume;
+    document.getElementById('lowLevelThreshold').value = currentSettings.waterLevel.lowLevelThreshold;
+    document.getElementById('schedule1').value = currentSettings.waterLevel.schedule1;
+    document.getElementById('schedule2').value = currentSettings.waterLevel.schedule2;
+    document.getElementById('schedule1Enabled').checked = currentSettings.waterLevel.schedule1Enabled;
+    document.getElementById('schedule2Enabled').checked = currentSettings.waterLevel.schedule2Enabled;
     
     // Soil Moisture settings
     document.getElementById('soilMoistureMin').value = currentSettings.soilMoisture.min;
@@ -65,7 +73,7 @@ function updateControlPanelDisplay() {
     const duration = document.querySelector('.control-item:nth-child(3) .control-value');
     
     if (waterThreshold) {
-        waterThreshold.textContent = `${currentSettings.waterLevel.alert} cm`;
+        waterThreshold.textContent = `${currentSettings.waterLevel.lowLevelThreshold}%`;
     }
     if (soilTarget) {
         soilTarget.textContent = `${currentSettings.soilMoisture.min}-${currentSettings.soilMoisture.max}%`;
@@ -95,9 +103,13 @@ function closeSettings() {
 // Save settings
 function saveSettings() {
     // Validate inputs
-    const waterMin = parseInt(document.getElementById('waterLevelMin').value);
-    const waterMax = parseInt(document.getElementById('waterLevelMax').value);
-    const waterAlert = parseInt(document.getElementById('waterLevelAlert').value);
+    const tankCapacity = parseInt(document.getElementById('tankCapacity').value);
+    const irrigationVolume = parseInt(document.getElementById('irrigationVolume').value);
+    const lowLevelThreshold = parseInt(document.getElementById('lowLevelThreshold').value);
+    const schedule1 = document.getElementById('schedule1').value;
+    const schedule2 = document.getElementById('schedule2').value;
+    const schedule1Enabled = document.getElementById('schedule1Enabled').checked;
+    const schedule2Enabled = document.getElementById('schedule2Enabled').checked;
     
     const soilMin = parseInt(document.getElementById('soilMoistureMin').value);
     const soilMax = parseInt(document.getElementById('soilMoistureMax').value);
@@ -107,13 +119,18 @@ function saveSettings() {
     const interval = parseInt(document.getElementById('irrigationInterval').value);
     
     // Validation
-    if (waterMin >= waterMax) {
-        showNotification('Water level minimum must be less than maximum', 'error');
+    if (tankCapacity <= 0) {
+        showNotification('Tank capacity must be greater than 0', 'error');
         return;
     }
     
-    if (waterAlert < waterMin || waterAlert > waterMax) {
-        showNotification('Water level alert must be between minimum and maximum', 'error');
+    if (irrigationVolume <= 0 || irrigationVolume > tankCapacity) {
+        showNotification('Irrigation volume must be between 1 and tank capacity', 'error');
+        return;
+    }
+    
+    if (lowLevelThreshold <= 0 || lowLevelThreshold > 100) {
+        showNotification('Low level threshold must be between 1 and 100', 'error');
         return;
     }
     
@@ -130,9 +147,13 @@ function saveSettings() {
     // Update settings
     currentSettings = {
         waterLevel: {
-            min: waterMin,
-            max: waterMax,
-            alert: waterAlert
+            tankCapacity: tankCapacity,
+            irrigationVolume: irrigationVolume,
+            lowLevelThreshold: lowLevelThreshold,
+            schedule1: schedule1,
+            schedule2: schedule2,
+            schedule1Enabled: schedule1Enabled,
+            schedule2Enabled: schedule2Enabled
         },
         soilMoisture: {
             min: soilMin,
@@ -152,6 +173,19 @@ function saveSettings() {
     // Save to localStorage
     saveSettingsToStorage();
     
+    // Update water level manager if available
+    if (window.waterLevelManager) {
+        window.waterLevelManager.updateSettings({
+            tankCapacity: tankCapacity,
+            irrigationVolume: irrigationVolume,
+            lowLevelThreshold: lowLevelThreshold,
+            schedules: [
+                { time: schedule1, enabled: schedule1Enabled },
+                { time: schedule2, enabled: schedule2Enabled }
+            ]
+        });
+    }
+    
     // Update UI
     updateControlPanelDisplay();
     
@@ -167,9 +201,13 @@ function resetSettings() {
     if (confirm('Are you sure you want to reset all settings to default values?')) {
         currentSettings = {
             waterLevel: {
-                min: 10,
-                max: 80,
-                alert: 15
+                tankCapacity: 100,
+                irrigationVolume: 7,
+                lowLevelThreshold: 20,
+                schedule1: '07:00',
+                schedule2: '16:00',
+                schedule1Enabled: true,
+                schedule2Enabled: true
             },
             soilMoisture: {
                 min: 40,

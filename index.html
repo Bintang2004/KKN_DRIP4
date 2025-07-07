@@ -83,15 +83,27 @@
                         <div class="metric-icon water">💧</div>
                         <div class="metric-details">
                             <h4>Water Level</h4>
-                            <p>Reservoir depth monitoring</p>
+                            <p>Tank water level monitoring</p>
                         </div>
                     </div>
                     <span class="status-badge low">LOW</span>
                 </div>
-                <div class="metric-value" id="water-level-value">13.0 cm</div>
+                <div class="metric-value" id="water-level-value">80.0L (80%)</div>
                 <div class="metric-description">
                     <div class="status-dot-small"></div>
-                    <span>Reservoir depth monitoring</span>
+                    <span>Tank water level monitoring</span>
+                </div>
+                <div class="countdown-display">
+                    <div class="countdown-label">Perkiraan Habis</div>
+                    <div class="countdown-value" id="tank-countdown">Menghitung...</div>
+                </div>
+                <div class="water-level-controls">
+                    <button class="control-btn success" onclick="waterLevelManager?.performIrrigation()">
+                        🌱 Siram Manual
+                    </button>
+                    <button class="control-btn danger" onclick="waterLevelManager?.emptyTank()">
+                        🗑️ Kosongkan
+                    </button>
                 </div>
             </div>
 
@@ -254,21 +266,43 @@
             
             <div class="settings-body">
                 <div class="settings-section">
-                    <h3>💧 Water Level Configuration</h3>
+                    <h3>💧 Water Tank Configuration</h3>
                     <div class="setting-group">
-                        <label for="waterLevelMin">Minimum Water Level (cm)</label>
-                        <input type="number" id="waterLevelMin" value="10" min="0" max="100" step="1">
-                        <small>Minimum level required for irrigation</small>
+                        <label for="tankCapacity">Tank Capacity (Liters)</label>
+                        <input type="number" id="tankCapacity" value="100" min="10" max="1000" step="1">
+                        <small>Total capacity of the water tank</small>
                     </div>
                     <div class="setting-group">
-                        <label for="waterLevelMax">Maximum Water Level (cm)</label>
-                        <input type="number" id="waterLevelMax" value="80" min="0" max="100" step="1">
-                        <small>Maximum safe water level</small>
+                        <label for="irrigationVolume">Irrigation Volume per Session (Liters)</label>
+                        <input type="number" id="irrigationVolume" value="7" min="1" max="50" step="0.5">
+                        <small>Amount of water used per irrigation session</small>
                     </div>
                     <div class="setting-group">
-                        <label for="waterLevelAlert">Low Water Alert (cm)</label>
-                        <input type="number" id="waterLevelAlert" value="15" min="0" max="100" step="1">
-                        <small>Alert when water level drops below this value</small>
+                        <label for="lowLevelThreshold">Low Level Threshold (%)</label>
+                        <input type="number" id="lowLevelThreshold" value="20" min="5" max="50" step="1">
+                        <small>Show warning when water level drops below this percentage</small>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>⏰ Irrigation Schedule</h3>
+                    <div class="setting-group">
+                        <label for="schedule1">Morning Irrigation Time</label>
+                        <input type="time" id="schedule1" value="07:00">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="schedule1Enabled" checked>
+                            <label for="schedule1Enabled">Enable Morning Irrigation</label>
+                        </div>
+                        <small>Automatic irrigation in the morning</small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="schedule2">Evening Irrigation Time</label>
+                        <input type="time" id="schedule2" value="16:00">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="schedule2Enabled" checked>
+                            <label for="schedule2Enabled">Enable Evening Irrigation</label>
+                        </div>
+                        <small>Automatic irrigation in the evening</small>
                     </div>
                 </div>
 
@@ -288,8 +322,6 @@
                         <label for="soilMoistureOptimal">Optimal Soil Moisture (%)</label>
                         <input type="number" id="soilMoistureOptimal" value="65" min="0" max="100" step="1">
                         <small>Target moisture level for optimal plant growth</small>
-                <div class="settings-section">
-                    <h3>⏰ Irrigation Schedule</h3>
                     <div class="setting-group">
                         <label for="irrigationDuration">Irrigation Duration (minutes)</label>
                         <input type="number" id="irrigationDuration" value="15" min="1" max="60" step="1">
@@ -300,7 +332,6 @@
                         <input type="number" id="irrigationInterval" value="30" min="5" max="120" step="5">
                         <small>How often to check soil moisture levels</small>
                     </div>
-                </div>
                     </div>
                 <div class="settings-section">
                     <h3>🔔 Alert Settings</h3>
@@ -329,6 +360,7 @@
     </div>
                 </div>
     <script src="js/thingspeaks.js"></script>
+    <script src="js/water-level-manager.js"></script>
     <script src="js/download.js"></script>
     <script src="js/settings.js"></script>
 </body>
