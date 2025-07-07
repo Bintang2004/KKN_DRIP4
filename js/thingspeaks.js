@@ -32,13 +32,12 @@ function updateDateAndTime() {
     document.getElementById('current-time').textContent = `${formattedDate} - ${formattedTime}`;
 }
 
-// Update system status and metrics
-function updateSystemMetrics() {
-    // Simulate real-time data updates
-    const waterLevel = (Math.random() * 50 + 10).toFixed(1);
+// Update only soil moisture metrics
+function updateSoilMoistureMetrics() {
+    // Simulate real-time soil moisture data updates
     const soilMoisture = (Math.random() * 40 + 60).toFixed(1);
     
-    document.getElementById('water-level-value').textContent = `${waterLevel} cm`;
+    // Only update soil moisture, not water level
     document.getElementById('soil-moisture-value').textContent = `${soilMoisture}%`;
     
     // Update next schedule
@@ -56,13 +55,14 @@ function updateSystemMetrics() {
 // Initialize on page load
 window.onload = function() {
     updateDateAndTime();
-    updateSystemMetrics();
+    // Don't update system metrics for water level since it's managed by water volume manager
+    // updateSystemMetrics();
     loadData('daily');
     
     // Update time every second
     setInterval(updateDateAndTime, 1000);
-    // Update metrics every 30 seconds
-    setInterval(updateSystemMetrics, 30000);
+    // Update soil moisture metrics every 30 seconds (not water level)
+    setInterval(updateSoilMoistureMetrics, 30000);
 };
 
 document.addEventListener('DOMContentLoaded', function() {
