@@ -378,10 +378,10 @@ function updateAverage(elementId, data, unit) {
     const element = document.getElementById(elementId);
     if (element) {
         if (data === null || data.length === 0) {
-            element.textContent = `-- ${unit}`;
+            element.textContent = `-- ${unit || 'L'}`;
         } else {
             const average = calculateAverage(data);
-            element.textContent = `${average} ${unit}`;
+            element.textContent = `${average} ${unit || 'L'}`;
         }
     }
 }

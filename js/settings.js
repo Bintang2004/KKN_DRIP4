@@ -73,7 +73,7 @@ function updateControlPanelDisplay() {
     const duration = document.querySelector('.control-item:nth-child(3) .control-value');
     
     if (waterThreshold) {
-        waterThreshold.textContent = `${currentSettings.waterLevel.lowLevelThreshold}% (${(currentSettings.waterLevel.tankCapacity * currentSettings.waterLevel.lowLevelThreshold / 100).toFixed(1)}L)`;
+        waterThreshold.textContent = `${(currentSettings.waterLevel.tankCapacity * currentSettings.waterLevel.lowLevelThreshold / 100).toFixed(1)}L`;
     }
     if (soilTarget) {
         soilTarget.textContent = `${currentSettings.soilMoisture.min}-${currentSettings.soilMoisture.max}%`;
