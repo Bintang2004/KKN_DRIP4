@@ -1216,6 +1216,34 @@ body {
   border-color: var(--success-green);
 }
 
+/* ========== WEATHER STATUS ========== */
+.weather-status {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  margin-top: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.weather-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.weather-source {
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.weather-update {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
 /* ========== RESPONSIVE DESIGN ========== */
 @media (max-width: 1200px) {
   .charts-grid {

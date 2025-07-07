@@ -34,7 +34,8 @@ class SoilMoistureManager {
         this.loadSettings();
         this.initializeSystem();
         this.startMoistureSimulation();
-        this.startWeatherSimulation();
+        // Weather is now managed by WeatherAPI
+        // this.startWeatherSimulation();
     }
 
     loadSettings() {
@@ -65,6 +66,9 @@ class SoilMoistureManager {
         if (window.waterVolumeManager) {
             this.setupIrrigationListener();
         }
+        
+        // Listen for weather updates from WeatherAPI
+        this.setupWeatherListener();
     }
 
     createWeatherControl() {
@@ -157,6 +161,28 @@ class SoilMoistureManager {
         }
     }
 
+    setupWeatherListener() {
+        // Check for weather updates every minute
+        setInterval(() => {
+            if (window.weatherAPI) {
+                const currentWeather = window.weatherAPI.getCurrentWeather();
+                if (currentWeather.condition !== this.settings.weather) {
+                    this.settings.weather = currentWeather.condition;
+                    this.updateWeatherDisplay();
+                    this.saveSettings();
+                }
+            }
+        }, 60000);
+    }
+
+    updateWeatherDisplay() {
+        const weatherDisplay = document.getElementById('weather-display');
+        if (weatherDisplay) {
+            weatherDisplay.textContent = `${this.weatherIcons[this.settings.weather]} ${this.settings.weather.charAt(0).toUpperCase() + this.settings.weather.slice(1)}`;
+        }
+        this.updateWeatherButtons();
+    }
+
     setupIrrigationListener() {
         // Override the performIrrigation method to trigger soil moisture increase
         const originalPerformIrrigation = window.waterVolumeManager.performIrrigation.bind(window.waterVolumeManager);
@@ -233,27 +259,6 @@ class SoilMoistureManager {
         this.moistureInterval = setInterval(() => {
             this.updateMoisture();
         }, 30000);
-    }
-
-    startWeatherSimulation() {
-        if (!this.settings.autoWeatherChange) return;
-        
-        // Change weather randomly every 5-15 minutes
-        this.weatherInterval = setInterval(() => {
-            const weathers = ['cerah', 'mendung', 'hujan'];
-            const currentIndex = weathers.indexOf(this.settings.weather);
-            
-            // 70% chance to stay same, 30% chance to change
-            if (Math.random() < 0.3) {
-                let newWeather;
-                do {
-                    newWeather = weathers[Math.floor(Math.random() * weathers.length)];
-                } while (newWeather === this.settings.weather);
-                
-                this.setWeather(newWeather);
-                this.updateWeatherButtons();
-            }
-        }, (5 + Math.random() * 10) * 60 * 1000); // 5-15 minutes
     }
 
     updateWeatherButtons() {
