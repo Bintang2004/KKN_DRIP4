@@ -3,8 +3,8 @@ class SoilMoistureManager {
     constructor() {
         this.settings = {
             currentMoisture: 45, // percentage
-            irrigationDuration: 7, // minutes
-            moistureIncreaseRate: 2, // percentage per minute during irrigation
+            irrigationDuration: 7, // minutes (configurable)
+            moistureIncreaseRate: 2.85, // percentage per minute during irrigation
             moistureDecreaseRate: {
                 cerah: 1, // percentage per 15 minutes
                 mendung: 1, // percentage per 30 minutes
@@ -13,16 +13,19 @@ class SoilMoistureManager {
             weather: 'cerah', // cerah, mendung, hujan
             isIrrigating: false,
             irrigationStartTime: null,
+            irrigationTargetMoisture: 35, // target moisture after irrigation
             lastUpdate: new Date(),
-            autoWeatherChange: true
+            autoWeatherChange: true,
+            scheduledIrrigations: ['07:00', '16:00'], // 7 AM and 4 PM
+            lastIrrigationCheck: new Date()
         };
         
         this.moistureRanges = {
             'Sangat Kering': { min: 0, max: 20, color: '#ef4444', status: 'dry' },
-            'Kering': { min: 21, max: 40, color: '#f59e0b', status: 'low' },
-            'Lembap (Drip Irrigation)': { min: 41, max: 60, color: '#10b981', status: 'wet' },
-            'Basah': { min: 61, max: 80, color: '#3b82f6', status: 'very-wet' },
-            'Sangat Basah (Hujan)': { min: 81, max: 100, color: '#8b5cf6', status: 'saturated' }
+            'Kering': { min: 21, max: 24, color: '#f59e0b', status: 'low' },
+            'Lembap (Drip Irrigation)': { min: 25, max: 40, color: '#10b981', status: 'wet' },
+            'Basah': { min: 41, max: 69, color: '#3b82f6', status: 'very-wet' },
+            'Sangat Basah (Hujan)': { min: 70, max: 100, color: '#8b5cf6', status: 'saturated' }
         };
         
         this.weatherIcons = {
@@ -34,8 +37,7 @@ class SoilMoistureManager {
         this.loadSettings();
         this.initializeSystem();
         this.startMoistureSimulation();
-        // Weather is now managed by WeatherAPI
-        // this.startWeatherSimulation();
+        this.startScheduledIrrigationCheck();
     }
 
     loadSettings() {
@@ -51,6 +53,17 @@ class SoilMoistureManager {
             if (parsed.irrigation) {
                 this.settings.irrigationDuration = parsed.irrigation.duration || this.settings.irrigationDuration;
             }
+            if (parsed.waterLevel) {
+                this.settings.scheduledIrrigations = [
+                    parsed.waterLevel.schedule1 || '07:00',
+                    parsed.waterLevel.schedule2 || '16:00'
+                ];
+            }
+        }
+        
+        // Ensure currentMoisture is a valid number
+        if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture)) {
+            this.settings.currentMoisture = 45;
         }
     }
 
@@ -89,73 +102,6 @@ class SoilMoistureManager {
                     <button class="weather-btn ${this.settings.weather === 'hujan' ? 'active' : ''}" onclick="soilMoistureManager.setWeather('hujan')">🌧️ Hujan</button>
                 </div>
             `;
-            
-            // Add styles
-            const style = document.createElement('style');
-            style.textContent = `
-                .weather-control {
-                    margin-top: 16px;
-                    padding: 12px;
-                    background: var(--bg-gray-50);
-                    border-radius: var(--radius-md);
-                    border: 1px solid var(--border-gray);
-                }
-                
-                .weather-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 8px;
-                }
-                
-                .weather-label {
-                    font-size: 12px;
-                    font-weight: 600;
-                    color: var(--text-gray);
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                }
-                
-                .weather-display {
-                    font-size: 14px;
-                    font-weight: 700;
-                    color: var(--text-dark);
-                }
-                
-                .weather-buttons {
-                    display: flex;
-                    gap: 4px;
-                }
-                
-                .weather-btn {
-                    flex: 1;
-                    background: white;
-                    border: 1px solid var(--border-gray);
-                    padding: 6px 8px;
-                    border-radius: var(--radius-sm);
-                    font-size: 11px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    color: var(--text-gray);
-                }
-                
-                .weather-btn:hover {
-                    background: var(--bg-gray-50);
-                    color: var(--text-dark);
-                }
-                
-                .weather-btn.active {
-                    background: var(--success-green);
-                    color: white;
-                    border-color: var(--success-green);
-                }
-            `;
-            
-            if (!document.getElementById('weather-styles')) {
-                style.id = 'weather-styles';
-                document.head.appendChild(style);
-            }
             
             soilCard.appendChild(weatherControl);
         }
@@ -196,14 +142,62 @@ class SoilMoistureManager {
         };
     }
 
+    startScheduledIrrigationCheck() {
+        // Check every minute for scheduled irrigations
+        setInterval(() => {
+            this.checkScheduledIrrigation();
+        }, 60000);
+    }
+
+    checkScheduledIrrigation() {
+        const now = new Date();
+        const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        // Check if it's time for scheduled irrigation
+        if (this.settings.scheduledIrrigations.includes(currentTime)) {
+            const lastCheck = new Date(this.settings.lastIrrigationCheck);
+            const timeSinceLastCheck = (now - lastCheck) / 1000 / 60; // minutes
+            
+            // Only trigger if we haven't checked in the last 2 minutes (prevent multiple triggers)
+            if (timeSinceLastCheck > 2) {
+                this.settings.lastIrrigationCheck = now;
+                this.saveSettings();
+                
+                // Check if water level is sufficient and auto irrigation is enabled
+                if (window.waterVolumeManager && 
+                    window.waterVolumeManager.settings.currentLevel >= window.waterVolumeManager.settings.irrigationVolume) {
+                    
+                    // Check if soil moisture is low enough to warrant irrigation
+                    if (this.settings.currentMoisture < 40) {
+                        this.startIrrigation();
+                        this.showNotification(`🕐 Penyiraman terjadwal ${currentTime} dimulai`, 'success');
+                    } else {
+                        this.showNotification(`🕐 Penyiraman terjadwal ${currentTime} dilewati - tanah masih lembap`, 'info');
+                    }
+                } else {
+                    this.showNotification(`🕐 Penyiraman terjadwal ${currentTime} gagal - air tidak cukup`, 'error');
+                }
+            }
+        }
+    }
+
     startIrrigation() {
         if (this.settings.isIrrigating) return;
         
         this.settings.isIrrigating = true;
         this.settings.irrigationStartTime = new Date();
+        
+        // Calculate target moisture and increase rate
+        const currentMoisture = this.settings.currentMoisture;
+        const targetMoisture = Math.min(40, currentMoisture + 20); // Target 25-40% range
+        this.settings.irrigationTargetMoisture = targetMoisture;
+        
+        // Calculate increase rate: (target - current) / duration
+        this.settings.moistureIncreaseRate = (targetMoisture - currentMoisture) / this.settings.irrigationDuration;
+        
         this.saveSettings();
         
-        this.showNotification('🌱 Drip irrigation dimulai', 'success');
+        this.showNotification(`🌱 Drip irrigation dimulai (${this.settings.irrigationDuration} menit)`, 'success');
         
         // Stop irrigation after duration
         setTimeout(() => {
@@ -219,6 +213,9 @@ class SoilMoistureManager {
         this.saveSettings();
         
         this.showNotification('🌱 Drip irrigation selesai', 'success');
+        
+        // Log the irrigation event
+        this.logMoisture('irrigation_complete');
     }
 
     setWeather(weather) {
@@ -233,10 +230,7 @@ class SoilMoistureManager {
         }
         
         // Update active button
-        document.querySelectorAll('.weather-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        event.target.classList.add('active');
+        this.updateWeatherButtons();
         
         // Handle rain effect
         if (weather === 'hujan' && oldWeather !== 'hujan') {
@@ -251,11 +245,12 @@ class SoilMoistureManager {
         const rainMoisture = 70 + Math.random() * 20; // 70-90%
         this.settings.currentMoisture = Math.min(100, rainMoisture);
         this.updateDisplay();
+        this.logMoisture('rain_event');
         this.showNotification('🌧️ Hujan meningkatkan kelembaban tanah!', 'success');
     }
 
     startMoistureSimulation() {
-        // Update moisture every 30 seconds
+        // Update moisture every 30 seconds for smooth transitions
         this.moistureInterval = setInterval(() => {
             this.updateMoisture();
         }, 30000);
@@ -266,35 +261,40 @@ class SoilMoistureManager {
             btn.classList.remove('active');
         });
         
-        const activeBtn = document.querySelector(`.weather-btn[onclick*="${this.settings.weather}"]`);
-        if (activeBtn) {
-            activeBtn.classList.add('active');
-        }
+        // Find and activate the correct button
+        const buttons = document.querySelectorAll('.weather-btn');
+        buttons.forEach(btn => {
+            if (btn.textContent.toLowerCase().includes(this.settings.weather)) {
+                btn.classList.add('active');
+            }
+        });
     }
 
     updateMoisture() {
         const now = new Date();
-        const timeDiff = (now - this.settings.lastUpdate) / 1000 / 60; // minutes
+        const timeDiff = (now - new Date(this.settings.lastUpdate)) / 1000 / 60; // minutes
         
         if (this.settings.isIrrigating) {
             // Increase moisture during irrigation
-            const irrigationTime = (now - this.settings.irrigationStartTime) / 1000 / 60; // minutes
+            const irrigationTime = (now - new Date(this.settings.irrigationStartTime)) / 1000 / 60; // minutes
             if (irrigationTime <= this.settings.irrigationDuration) {
-                this.settings.currentMoisture += this.settings.moistureIncreaseRate * (timeDiff / 30); // Adjust for 30-second intervals
+                // Gradual increase based on calculated rate
+                const increaseAmount = this.settings.moistureIncreaseRate * (timeDiff);
+                this.settings.currentMoisture += increaseAmount;
                 this.settings.currentMoisture = Math.min(100, this.settings.currentMoisture);
             }
         } else if (this.settings.weather !== 'hujan') {
-            // Decrease moisture based on weather
+            // Decrease moisture based on weather (evaporation)
             let decreaseRate = 0;
             let interval = 15; // default interval in minutes
             
             switch (this.settings.weather) {
                 case 'cerah':
-                    decreaseRate = this.settings.moistureDecreaseRate.cerah;
+                    decreaseRate = this.settings.moistureDecreaseRate.cerah; // 1% per 15 minutes
                     interval = 15;
                     break;
                 case 'mendung':
-                    decreaseRate = this.settings.moistureDecreaseRate.mendung;
+                    decreaseRate = this.settings.moistureDecreaseRate.mendung; // 1% per 30 minutes
                     interval = 30;
                     break;
             }
@@ -308,21 +308,29 @@ class SoilMoistureManager {
         this.settings.lastUpdate = now;
         this.saveSettings();
         this.updateDisplay();
+        
+        // Log moisture changes periodically
+        if (Math.random() < 0.1) { // 10% chance to log each update
+            this.logMoisture('periodic_update');
+        }
     }
 
     updateDisplay() {
+        // Ensure currentMoisture is a valid number
+        if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture)) {
+            this.settings.currentMoisture = 45;
+        }
+        
         // Update soil moisture value
         const soilMoistureValue = document.getElementById('soil-moisture-value');
         if (soilMoistureValue) {
-            const moisture = typeof this.settings.currentMoisture === 'number' ? this.settings.currentMoisture : 0;
-            soilMoistureValue.textContent = `${moisture.toFixed(1)}%`;
+            soilMoistureValue.textContent = `${this.settings.currentMoisture.toFixed(1)}%`;
         }
         
         // Update status badge
         const statusBadge = document.querySelector('.metric-card:nth-child(2) .status-badge');
         if (statusBadge) {
-            const moisture = typeof this.settings.currentMoisture === 'number' ? this.settings.currentMoisture : 0;
-            const range = this.getMoistureRange(moisture);
+            const range = this.getMoistureRange(this.settings.currentMoisture);
             statusBadge.textContent = range.status.toUpperCase();
             statusBadge.className = `status-badge ${range.status}`;
         }
@@ -334,8 +342,24 @@ class SoilMoistureManager {
                 const statusBadge = irrigationCard.querySelector('.status-badge');
                 const metricValue = irrigationCard.querySelector('.metric-value');
                 
-                if (statusBadge) statusBadge.textContent = 'IRRIGATING';
+                if (statusBadge) {
+                    statusBadge.textContent = 'IRRIGATING';
+                    statusBadge.className = 'status-badge running';
+                }
                 if (metricValue) metricValue.textContent = 'Drip Active';
+            }
+        } else {
+            // Reset irrigation status when not irrigating
+            const irrigationCard = document.querySelector('.metric-card:nth-child(3)');
+            if (irrigationCard) {
+                const statusBadge = irrigationCard.querySelector('.status-badge');
+                const metricValue = irrigationCard.querySelector('.metric-value');
+                
+                if (statusBadge) {
+                    statusBadge.textContent = 'STANDBY';
+                    statusBadge.className = 'status-badge running';
+                }
+                if (metricValue) metricValue.textContent = 'Ready';
             }
         }
     }
@@ -369,8 +393,8 @@ class SoilMoistureManager {
                 startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
         }
         
-        // Generate simulated data if no logs exist
-        if (logs.length === 0) {
+        // Generate simulated data if no logs exist or insufficient data
+        if (logs.length < 10) {
             return this.generateSimulatedData(startDate, now, period);
         }
         
@@ -395,20 +419,46 @@ class SoilMoistureManager {
 
     generateSimulatedData(startDate, endDate, period) {
         const data = [];
-        const intervalMinutes = period === 'daily' ? 60 : period === 'weekly' ? 360 : 1440; // 1h, 6h, 24h
+        const intervalMinutes = period === 'daily' ? 30 : period === 'weekly' ? 180 : 720; // 30min, 3h, 12h
         
         let currentTime = new Date(startDate);
-        let moisture = 30 + Math.random() * 20; // Start with 30-50%
+        let moisture = 20 + Math.random() * 15; // Start with 20-35%
         
         while (currentTime <= endDate) {
-            // Simulate irrigation at 7 AM and 4 PM
             const hour = currentTime.getHours();
-            if ((hour === 7 || hour === 16) && currentTime.getMinutes() === 0) {
-                moisture = Math.min(100, moisture + 15 + Math.random() * 10); // Irrigation boost
+            const minute = currentTime.getMinutes();
+            
+            // Simulate irrigation at scheduled times
+            if ((hour === 7 || hour === 16) && minute === 0) {
+                // Irrigation event - gradual increase over 7 minutes
+                for (let i = 0; i <= 7; i++) {
+                    const irrigationTime = new Date(currentTime.getTime() + i * 60 * 1000);
+                    moisture += 2.5; // Increase by ~2.5% per minute
+                    moisture = Math.min(40, moisture);
+                    
+                    data.push({
+                        x: new Date(irrigationTime),
+                        y: parseFloat(moisture.toFixed(1))
+                    });
+                }
             } else {
-                // Natural decrease
-                moisture -= 0.5 + Math.random() * 1;
-                moisture = Math.max(0, moisture);
+                // Natural decrease based on time of day and weather simulation
+                let decreaseRate = 0.5; // Base rate
+                
+                // Simulate weather effects
+                if (hour >= 10 && hour <= 16) {
+                    decreaseRate = 1.0; // Faster evaporation during hot hours
+                } else if (hour >= 18 || hour <= 6) {
+                    decreaseRate = 0.2; // Slower at night
+                }
+                
+                // Random weather events
+                if (Math.random() < 0.05) { // 5% chance of rain
+                    moisture = 75 + Math.random() * 15; // Rain effect
+                } else {
+                    moisture -= decreaseRate * (intervalMinutes / 30);
+                    moisture = Math.max(5, moisture);
+                }
             }
             
             data.push({
@@ -422,13 +472,14 @@ class SoilMoistureManager {
         return data;
     }
 
-    logMoisture() {
+    logMoisture(eventType = 'update') {
         const logs = JSON.parse(localStorage.getItem('soilMoistureLogs') || '[]');
         logs.push({
             timestamp: new Date().toISOString(),
             moisture: this.settings.currentMoisture,
             weather: this.settings.weather,
-            isIrrigating: this.settings.isIrrigating
+            isIrrigating: this.settings.isIrrigating,
+            eventType: eventType
         });
         
         // Keep only last 1000 logs
@@ -462,6 +513,8 @@ class SoilMoistureManager {
         
         if (type === 'success') {
             notification.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        } else if (type === 'info') {
+            notification.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
         } else {
             notification.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
         }
@@ -484,8 +537,36 @@ class SoilMoistureManager {
 
     updateSettings(newSettings) {
         this.settings = { ...this.settings, ...newSettings };
+        
+        // Update irrigation duration and recalculate rates if needed
+        if (newSettings.irrigationDuration) {
+            this.settings.irrigationDuration = newSettings.irrigationDuration;
+        }
+        
+        // Update scheduled irrigation times
+        if (newSettings.scheduledIrrigations) {
+            this.settings.scheduledIrrigations = newSettings.scheduledIrrigations;
+        }
+        
         this.saveSettings();
         this.updateDisplay();
+    }
+
+    // Manual irrigation trigger (for testing)
+    triggerManualIrrigation() {
+        if (!this.settings.isIrrigating) {
+            this.startIrrigation();
+        }
+    }
+
+    // Get current moisture status for other systems
+    getCurrentMoistureStatus() {
+        return {
+            moisture: this.settings.currentMoisture,
+            range: this.getMoistureRange(this.settings.currentMoisture),
+            isIrrigating: this.settings.isIrrigating,
+            weather: this.settings.weather
+        };
     }
 }
 

@@ -1,7 +1,7 @@
 // Settings Management
 let currentSettings = {
     waterLevel: {
-        tankCapacity: 100,
+        tankCapacity: 90,
         irrigationVolume: 7,
         lowLevelThreshold: 20,
         schedule1: '07:00',
@@ -201,7 +201,7 @@ function resetSettings() {
     if (confirm('Are you sure you want to reset all settings to default values?')) {
         currentSettings = {
             waterLevel: {
-                tankCapacity: 100,
+                tankCapacity: 90,
                 irrigationVolume: 7,
                 lowLevelThreshold: 20,
                 schedule1: '07:00',
@@ -226,7 +226,31 @@ function resetSettings() {
         
         updateSettingsUI();
         showNotification('Settings reset to default values', 'success');
+        
+        // Update water level manager if available
+        if (window.waterVolumeManager) {
+            window.waterVolumeManager.updateSettings({
+                tankCapacity: 90,
+                irrigationVolume: 7,
+                lowLevelThreshold: 20,
+                schedules: [
+                    { time: '07:00', enabled: true },
+                    { time: '16:00', enabled: true }
+                ]
+            });
+        }
     }
+        // Update soil moisture manager if available
+        if (window.soilMoistureManager) {
+            window.soilMoistureManager.updateSettings({
+                irrigationDuration: duration,
+                scheduledIrrigations: [
+                    ...(schedule1Enabled ? [schedule1] : []),
+                    ...(schedule2Enabled ? [schedule2] : [])
+                ]
+            });
+        }
+        
 }
 
 // Show notification
