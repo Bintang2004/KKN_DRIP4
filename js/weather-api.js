@@ -15,22 +15,22 @@ class WeatherAPI {
             {
                 name: 'OpenWeatherMap',
                 url: 'https://api.openweathermap.org/data/2.5/weather',
-                key: '4f4b8b9c8e8f4a5d9c7b6a3e2f1d0c9b', // Free API key
-                enabled: true,
+                key: '4f4b8b9c8e8f4a5d9c7b6a3e2f1d0c9b', // Demo API key - replace with real key
+                enabled: false, // Disabled for demo - enable with real API key
                 priority: 1
             },
             {
                 name: 'WeatherAPI',
                 url: 'https://api.weatherapi.com/v1/current.json',
-                key: 'b8a7c6d5e4f3g2h1i0j9k8l7m6n5o4p3', // Free API key
-                enabled: true,
+                key: 'b8a7c6d5e4f3g2h1i0j9k8l7m6n5o4p3', // Demo API key - replace with real key
+                enabled: false, // Disabled for demo - enable with real API key
                 priority: 2
             },
             {
                 name: 'AccuWeather',
                 url: 'https://dataservice.accuweather.com/currentconditions/v1/',
-                key: 'x9y8z7a6b5c4d3e2f1g0h9i8j7k6l5m4', // Free API key
-                enabled: true,
+                key: 'x9y8z7a6b5c4d3e2f1g0h9i8j7k6l5m4', // Demo API key - replace with real key
+                enabled: false, // Disabled for demo - enable with real API key
                 priority: 3
             }
         ];
@@ -104,8 +104,17 @@ class WeatherAPI {
     async fetchRealWeatherData() {
         console.log('🔄 Fetching real-time weather data...');
         
+        // Check if any API sources are enabled
+        const enabledSources = this.apiSources.filter(source => source.enabled);
+        
+        if (enabledSources.length === 0) {
+            console.log('ℹ️ No API sources enabled, using intelligent fallback...');
+            this.generateIntelligentFallback();
+            return;
+        }
+        
         // Try all API sources in priority order
-        for (const source of this.apiSources.sort((a, b) => a.priority - b.priority)) {
+        for (const source of enabledSources.sort((a, b) => a.priority - b.priority)) {
             if (!source.enabled) continue;
             
             try {
@@ -129,21 +138,33 @@ class WeatherAPI {
                     return;
                 }
             } catch (error) {
-                console.warn(`⚠️ ${source.name} API failed:`, error.message);
+                console.warn(`⚠️ ${source.name} API failed: ${error.message}`);
                 continue;
             }
         }
         
         // If all APIs fail, use intelligent fallback
-        console.log('🔄 All APIs failed, using intelligent fallback...');
+        console.log('🔄 All enabled APIs failed, using intelligent fallback...');
         this.generateIntelligentFallback();
     }
 
     async fetchFromOpenWeatherMap(source) {
         try {
+            // Add timeout to prevent hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            
             const url = `${source.url}?lat=${this.location.lat}&lon=${this.location.lon}&appid=${source.key}&units=metric&lang=id`;
             
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -173,16 +194,31 @@ class WeatherAPI {
                 dt: data.dt
             };
         } catch (error) {
-            console.error('OpenWeatherMap API error:', error);
+            if (error.name === 'AbortError') {
+                throw new Error('Request timeout');
+            }
+            throw new Error(`OpenWeatherMap API error: ${error.message}`);
             return null;
         }
     }
 
     async fetchFromWeatherAPI(source) {
         try {
+            // Add timeout to prevent hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            
             const url = `${source.url}?key=${source.key}&q=${this.location.lat},${this.location.lon}&lang=id`;
             
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -213,18 +249,31 @@ class WeatherAPI {
                 dt: new Date(data.location.localtime).getTime() / 1000
             };
         } catch (error) {
-            console.error('WeatherAPI error:', error);
+            if (error.name === 'AbortError') {
+                throw new Error('Request timeout');
+            }
+            throw new Error(`WeatherAPI error: ${error.message}`);
             return null;
         }
     }
 
     async fetchFromAccuWeather(source) {
         try {
+            // Add timeout to prevent hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout for two requests
+            
             // First get location key
             const locationUrl = `https://dataservice.accuweather.com/locations/v1/cities/geoposition/search?apikey=${source.key}&q=${this.location.lat},${this.location.lon}`;
-            const locationResponse = await fetch(locationUrl);
+            const locationResponse = await fetch(locationUrl, {
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
             
             if (!locationResponse.ok) {
+                clearTimeout(timeoutId);
                 throw new Error(`Location lookup failed: ${locationResponse.status}`);
             }
             
@@ -233,7 +282,14 @@ class WeatherAPI {
             
             // Get current conditions
             const weatherUrl = `${source.url}${locationKey}?apikey=${source.key}&details=true&language=id`;
-            const weatherResponse = await fetch(weatherUrl);
+            const weatherResponse = await fetch(weatherUrl, {
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+            
+            clearTimeout(timeoutId);
             
             if (!weatherResponse.ok) {
                 throw new Error(`Weather fetch failed: ${weatherResponse.status}`);
@@ -266,7 +322,10 @@ class WeatherAPI {
                 dt: new Date(current.LocalObservationDateTime).getTime() / 1000
             };
         } catch (error) {
-            console.error('AccuWeather API error:', error);
+            if (error.name === 'AbortError') {
+                throw new Error('Request timeout');
+            }
+            throw new Error(`AccuWeather API error: ${error.message}`);
             return null;
         }
     }
@@ -426,7 +485,7 @@ class WeatherAPI {
             lastUpdate: new Date(),
             source: 'Intelligent Fallback',
             dataAge: 0,
-            accuracy: 'estimated'
+            accuracy: 'simulated'
         };
         
         this.updateEnvironmentalDisplay();
@@ -441,16 +500,34 @@ class WeatherAPI {
     async fetchDetailedWeatherData() {
         // Fetch additional weather details for enhanced accuracy
         try {
-            // Get weather forecast for better prediction
-            const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${this.location.lat}&lon=${this.location.lon}&appid=4f4b8b9c8e8f4a5d9c7b6a3e2f1d0c9b&units=metric`;
+            // Only try if OpenWeatherMap is enabled
+            const openWeatherSource = this.apiSources.find(s => s.name === 'OpenWeatherMap' && s.enabled);
+            if (!openWeatherSource) {
+                console.log('ℹ️ OpenWeatherMap not enabled, skipping detailed forecast');
+                return;
+            }
             
-            const response = await fetch(forecastUrl);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            
+            // Get weather forecast for better prediction
+            const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${this.location.lat}&lon=${this.location.lon}&appid=${openWeatherSource.key}&units=metric`;
+            
+            const response = await fetch(forecastUrl, {
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
             if (response.ok) {
                 const data = await response.json();
                 this.processForecastData(data);
             }
         } catch (error) {
-            console.log('Forecast data unavailable:', error.message);
+            console.log('ℹ️ Forecast data unavailable (using simulated data):', error.message);
         }
     }
 
@@ -571,12 +648,26 @@ class WeatherAPI {
         
         weatherStatus.innerHTML = `
             <div class="weather-info">
-                <span class="weather-source">📡 ${this.currentWeather.source}</span>
+               <span class="weather-source">${this.getSourceIcon()} ${this.currentWeather.source}</span>
                 <span class="weather-update">Update ${this.currentWeather.dataAge}m lalu</span>
             </div>
         `;
         
         weatherStatus.style.borderColor = accuracyColor[this.currentWeather.accuracy] || '#6b7280';
+    }
+
+    getSourceIcon() {
+        switch (this.currentWeather.source) {
+            case 'OpenWeatherMap':
+            case 'WeatherAPI':
+            case 'AccuWeather':
+                return '📡';
+            case 'Intelligent Fallback':
+            case 'Manual Override':
+                return '🤖';
+            default:
+                return '📊';
+        }
     }
 
     showWeatherUpdateNotification(source) {
@@ -587,12 +678,16 @@ class WeatherAPI {
         
         this.lastNotificationTime = new Date();
         
+       const isSimulated = source === 'Intelligent Fallback';
+       const icon = isSimulated ? '🤖' : '🌤️';
+       const message = isSimulated ? 'Menggunakan data cuaca simulasi' : `Cuaca diperbarui dari ${source}`;
+       
         const notification = document.createElement('div');
         notification.className = 'weather-notification';
         notification.innerHTML = `
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span>🌤️</span>
-                <span>Cuaca diperbarui dari ${source}</span>
+               <span>${icon}</span>
+               <span>${message}</span>
             </div>
         `;
         
@@ -600,7 +695,7 @@ class WeatherAPI {
             position: fixed;
             top: 80px;
             right: 20px;
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
+           background: linear-gradient(135deg, ${isSimulated ? '#f59e0b' : '#3b82f6'}, ${isSimulated ? '#d97706' : '#2563eb'});
             color: white;
             padding: 10px 16px;
             border-radius: 8px;
