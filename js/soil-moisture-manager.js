@@ -42,6 +42,34 @@ class SoilMoistureManager {
         this.startScheduledIrrigationCheck();
     }
 
+    loadSettings() {
+        // Load saved settings from localStorage
+        const saved = localStorage.getItem('soilMoistureSettings');
+        if (saved) {
+            try {
+                const savedSettings = JSON.parse(saved);
+                // Merge saved settings with defaults, ensuring data integrity
+                Object.keys(savedSettings).forEach(key => {
+                    if (key === 'currentMoisture' && (typeof savedSettings[key] !== 'number' || isNaN(savedSettings[key]))) {
+                        // Skip corrupted moisture data
+                        return;
+                    }
+                    if (this.settings.hasOwnProperty(key)) {
+                        this.settings[key] = savedSettings[key];
+                    }
+                });
+            } catch (e) {
+                console.warn('Failed to load soil moisture settings:', e);
+            }
+        }
+
+        // Sync with global irrigation settings if available
+        if (typeof window !== 'undefined' && window.irrigationSettings) {
+            this.settings.irrigationDuration = window.irrigationSettings.duration || this.settings.irrigationDuration;
+            this.settings.scheduledIrrigations = window.irrigationSettings.scheduledTimes || this.settings.scheduledIrrigations;
+        }
+    }
+
     // ... rest of the code ...
 
 } // Added closing brace for class
