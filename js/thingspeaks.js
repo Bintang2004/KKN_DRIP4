@@ -34,8 +34,11 @@ function updateDateAndTime() {
 
 // Update only soil moisture metrics
 function updateSoilMoistureMetrics() {
-    // Soil moisture is now managed by SoilMoistureManager
-    // This function is kept for compatibility but does nothing
+    // Ensure soil moisture manager is working properly
+    if (window.soilMoistureManager) {
+        // Force update display to ensure synchronization
+        window.soilMoistureManager.updateDisplay();
+    }
     
     // Update next schedule
     const now = new Date();
@@ -52,13 +55,22 @@ function updateSoilMoistureMetrics() {
 // Initialize on page load
 window.onload = function() {
     updateDateAndTime();
-    // Don't update system metrics for water level since it's managed by water volume manager
-    // updateSystemMetrics();
+    
+    // Ensure all managers are initialized
+    setTimeout(() => {
+        if (window.waterVolumeManager) {
+            window.waterVolumeManager.updateDisplay();
+        }
+        if (window.soilMoistureManager) {
+            window.soilMoistureManager.updateDisplay();
+        }
+    }, 1000);
+    
     loadData('daily');
     
     // Update time every second
     setInterval(updateDateAndTime, 1000);
-    // Update next schedule every 30 seconds
+    // Update metrics every 30 seconds to ensure synchronization
     setInterval(updateSoilMoistureMetrics, 30000);
 };
 

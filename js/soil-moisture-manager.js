@@ -43,7 +43,18 @@ class SoilMoistureManager {
     loadSettings() {
         const saved = localStorage.getItem('soilMoistureSettings');
         if (saved) {
-            this.settings = { ...this.settings, ...JSON.parse(saved) };
+            const savedSettings = JSON.parse(saved);
+            // Ensure all numeric values are valid
+            if (typeof savedSettings.currentMoisture === 'number' && !isNaN(savedSettings.currentMoisture)) {
+                this.settings.currentMoisture = savedSettings.currentMoisture;
+            }
+            if (typeof savedSettings.irrigationDuration === 'number' && !isNaN(savedSettings.irrigationDuration)) {
+                this.settings.irrigationDuration = savedSettings.irrigationDuration;
+            }
+            // Copy other valid settings
+            this.settings.weather = savedSettings.weather || this.settings.weather;
+            this.settings.isIrrigating = savedSettings.isIrrigating || false;
+            this.settings.scheduledIrrigations = savedSettings.scheduledIrrigations || this.settings.scheduledIrrigations;
         }
         
         // Sync with irrigation settings if available
@@ -62,12 +73,23 @@ class SoilMoistureManager {
         }
         
         // Ensure currentMoisture is a valid number
-        if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture)) {
+        if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture) || this.settings.currentMoisture < 0 || this.settings.currentMoisture > 100) {
             this.settings.currentMoisture = 45;
+        }
+        
+        // Ensure irrigationDuration is valid
+        if (typeof this.settings.irrigationDuration !== 'number' || isNaN(this.settings.irrigationDuration) || this.settings.irrigationDuration <= 0) {
+            this.settings.irrigationDuration = 7;
         }
     }
 
     saveSettings() {
+        // Validate data before saving
+        const settingsToSave = {
+            ...this.settings,
+            currentMoisture: typeof this.settings.currentMoisture === 'number' && !isNaN(this.settings.currentMoisture) ? this.settings.currentMoisture : 45,
+            irrigationDuration: typeof this.settings.irrigationDuration === 'number' && !isNaN(this.settings.irrigationDuration) ? this.settings.irrigationDuration : 7
+        };
         localStorage.setItem('soilMoistureSettings', JSON.stringify(this.settings));
     }
 
@@ -184,25 +206,31 @@ class SoilMoistureManager {
     startIrrigation() {
         if (this.settings.isIrrigating) return;
         
+        // Ensure currentMoisture is valid before starting irrigation
+        if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture)) {
+            this.settings.currentMoisture = 45;
+        }
+        
         this.settings.isIrrigating = true;
         this.settings.irrigationStartTime = new Date();
         
         // Calculate target moisture and increase rate
         const currentMoisture = this.settings.currentMoisture;
-        const targetMoisture = Math.min(40, currentMoisture + 20); // Target 25-40% range
+        const targetMoisture = Math.min(40, Math.max(25, currentMoisture + 15)); // Target 25-40% range
         this.settings.irrigationTargetMoisture = targetMoisture;
         
         // Calculate increase rate: (target - current) / duration
-        this.settings.moistureIncreaseRate = (targetMoisture - currentMoisture) / this.settings.irrigationDuration;
+        const duration = typeof this.settings.irrigationDuration === 'number' && !isNaN(this.settings.irrigationDuration) ? this.settings.irrigationDuration : 7;
+        this.settings.moistureIncreaseRate = Math.max(0.5, (targetMoisture - currentMoisture) / duration);
         
         this.saveSettings();
         
-        this.showNotification(`🌱 Drip irrigation dimulai (${this.settings.irrigationDuration} menit)`, 'success');
+        this.showNotification(`🌱 Drip irrigation dimulai (${duration} menit)`, 'success');
         
         // Stop irrigation after duration
         setTimeout(() => {
             this.stopIrrigation();
-        }, this.settings.irrigationDuration * 60 * 1000);
+        }, duration * 60 * 1000);
     }
 
     stopIrrigation() {
@@ -243,8 +271,9 @@ class SoilMoistureManager {
     applyRainEffect() {
         // Rain immediately increases moisture to 70-90%
         const rainMoisture = 70 + Math.random() * 20; // 70-90%
-        this.settings.currentMoisture = Math.min(100, rainMoisture);
+        this.settings.currentMoisture = Math.min(100, Math.max(0, rainMoisture));
         this.updateDisplay();
+        this.saveSettings();
         this.logMoisture('rain_event');
         this.showNotification('🌧️ Hujan meningkatkan kelembaban tanah!', 'success');
     }
@@ -272,15 +301,26 @@ class SoilMoistureManager {
 
     updateMoisture() {
         const now = new Date();
-        const timeDiff = (now - new Date(this.settings.lastUpdate)) / 1000 / 60; // minutes
+        const lastUpdate = this.settings.lastUpdate ? new Date(this.settings.lastUpdate) : new Date(now.getTime() - 30000);
+        const timeDiff = (now - lastUpdate) / 1000 / 60; // minutes
+        
+        // Prevent excessive time differences (max 1 hour)
+        const actualTimeDiff = Math.min(timeDiff, 60);
+        
+        // Ensure currentMoisture is valid before calculations
+        if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture)) {
+            this.settings.currentMoisture = 45;
+        }
         
         if (this.settings.isIrrigating) {
             // Increase moisture during irrigation
-            const irrigationTime = (now - new Date(this.settings.irrigationStartTime)) / 1000 / 60; // minutes
+            const irrigationStartTime = this.settings.irrigationStartTime ? new Date(this.settings.irrigationStartTime) : now;
+            const irrigationTime = (now - irrigationStartTime) / 1000 / 60; // minutes
             if (irrigationTime <= this.settings.irrigationDuration) {
                 // Gradual increase based on calculated rate
-                const increaseAmount = this.settings.moistureIncreaseRate * (timeDiff);
-                this.settings.currentMoisture += increaseAmount;
+                const increaseRate = typeof this.settings.moistureIncreaseRate === 'number' && !isNaN(this.settings.moistureIncreaseRate) ? this.settings.moistureIncreaseRate : 2.85;
+                const increaseAmount = increaseRate * actualTimeDiff;
+                this.settings.currentMoisture = Math.min(100, this.settings.currentMoisture + increaseAmount);
                 this.settings.currentMoisture = Math.min(100, this.settings.currentMoisture);
             }
         } else if (this.settings.weather !== 'hujan') {
@@ -300,10 +340,18 @@ class SoilMoistureManager {
             }
             
             // Calculate decrease based on time passed
-            const decreaseAmount = (decreaseRate * timeDiff) / interval;
-            this.settings.currentMoisture -= decreaseAmount;
+            const decreaseAmount = (decreaseRate * actualTimeDiff) / interval;
+            this.settings.currentMoisture = Math.max(0, this.settings.currentMoisture - decreaseAmount);
             this.settings.currentMoisture = Math.max(0, this.settings.currentMoisture);
         }
+        
+        // Ensure final value is valid
+        if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture)) {
+            this.settings.currentMoisture = 45;
+        }
+        
+        // Clamp values to valid range
+        this.settings.currentMoisture = Math.max(0, Math.min(100, this.settings.currentMoisture));
         
         this.settings.lastUpdate = now;
         this.saveSettings();
@@ -317,14 +365,22 @@ class SoilMoistureManager {
 
     updateDisplay() {
         // Ensure currentMoisture is a valid number
-        if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture)) {
+        if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture) || this.settings.currentMoisture < 0 || this.settings.currentMoisture > 100) {
             this.settings.currentMoisture = 45;
+            this.saveSettings();
         }
         
         // Update soil moisture value
         const soilMoistureValue = document.getElementById('soil-moisture-value');
         if (soilMoistureValue) {
-            soilMoistureValue.textContent = `${this.settings.currentMoisture.toFixed(1)}%`;
+            const moistureValue = parseFloat(this.settings.currentMoisture);
+            if (!isNaN(moistureValue)) {
+                soilMoistureValue.textContent = `${moistureValue.toFixed(1)}%`;
+            } else {
+                soilMoistureValue.textContent = '45.0%';
+                this.settings.currentMoisture = 45;
+                this.saveSettings();
+            }
         }
         
         // Update status badge
@@ -538,9 +594,17 @@ class SoilMoistureManager {
     updateSettings(newSettings) {
         this.settings = { ...this.settings, ...newSettings };
         
+        // Validate numeric settings
+        if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture)) {
+            this.settings.currentMoisture = 45;
+        }
+        
         // Update irrigation duration and recalculate rates if needed
         if (newSettings.irrigationDuration) {
-            this.settings.irrigationDuration = newSettings.irrigationDuration;
+            const duration = parseFloat(newSettings.irrigationDuration);
+            if (!isNaN(duration) && duration > 0) {
+                this.settings.irrigationDuration = duration;
+            }
         }
         
         // Update scheduled irrigation times
@@ -561,6 +625,12 @@ class SoilMoistureManager {
 
     // Get current moisture status for other systems
     getCurrentMoistureStatus() {
+        // Ensure valid data before returning
+        if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture)) {
+            this.settings.currentMoisture = 45;
+            this.saveSettings();
+        }
+        
         return {
             moisture: this.settings.currentMoisture,
             range: this.getMoistureRange(this.settings.currentMoisture),
@@ -576,6 +646,19 @@ let soilMoistureManager;
 document.addEventListener('DOMContentLoaded', function() {
     // Wait a bit for water volume manager to initialize first
     setTimeout(() => {
+        // Clear any corrupted data first
+        const saved = localStorage.getItem('soilMoistureSettings');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (typeof parsed.currentMoisture !== 'number' || isNaN(parsed.currentMoisture)) {
+                    localStorage.removeItem('soilMoistureSettings');
+                }
+            } catch (e) {
+                localStorage.removeItem('soilMoistureSettings');
+            }
+        }
+        
         soilMoistureManager = new SoilMoistureManager();
         window.soilMoistureManager = soilMoistureManager;
     }, 500);

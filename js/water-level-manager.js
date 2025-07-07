@@ -2,8 +2,8 @@
 class WaterVolumeManager {
     constructor() {
         this.settings = {
-            tankCapacity: 100, // liters
-            currentLevel: 80, // liters
+            tankCapacity: 90, // liters
+            currentLevel: 72, // liters (80% of 90L)
             irrigationVolume: 7, // liters per irrigation
             schedules: [
                 { time: '07:00', enabled: true },
@@ -19,12 +19,48 @@ class WaterVolumeManager {
         this.initializeSystem();
         this.startCountdown();
         this.scheduleIrrigations();
+        
+        // Initialize with current settings from localStorage
+        this.syncWithGlobalSettings();
     }
 
     loadSettings() {
         const saved = localStorage.getItem('waterVolumeSettings');
         if (saved) {
             this.settings = { ...this.settings, ...JSON.parse(saved) };
+        }
+        
+        // Also load from irrigation settings if available
+        const irrigationSettings = localStorage.getItem('irrigationSettings');
+        if (irrigationSettings) {
+            const parsed = JSON.parse(irrigationSettings);
+            if (parsed.waterLevel) {
+                this.settings.tankCapacity = parsed.waterLevel.tankCapacity || this.settings.tankCapacity;
+                this.settings.irrigationVolume = parsed.waterLevel.irrigationVolume || this.settings.irrigationVolume;
+                this.settings.lowLevelThreshold = parsed.waterLevel.lowLevelThreshold || this.settings.lowLevelThreshold;
+                this.settings.schedules = [
+                    { time: parsed.waterLevel.schedule1 || '07:00', enabled: parsed.waterLevel.schedule1Enabled !== false },
+                    { time: parsed.waterLevel.schedule2 || '16:00', enabled: parsed.waterLevel.schedule2Enabled !== false }
+                ];
+            }
+        }
+    }
+    
+    syncWithGlobalSettings() {
+        // Sync with global settings if they exist
+        if (window.irrigationSettings && window.irrigationSettings.getCurrentSettings) {
+            const globalSettings = window.irrigationSettings.getCurrentSettings();
+            if (globalSettings.waterLevel) {
+                this.settings.tankCapacity = globalSettings.waterLevel.tankCapacity || this.settings.tankCapacity;
+                this.settings.irrigationVolume = globalSettings.waterLevel.irrigationVolume || this.settings.irrigationVolume;
+                this.settings.lowLevelThreshold = globalSettings.waterLevel.lowLevelThreshold || this.settings.lowLevelThreshold;
+                
+                // Adjust current level to maintain percentage if tank capacity changed
+                const currentPercentage = (this.settings.currentLevel / this.settings.tankCapacity) * 100;
+                if (currentPercentage > 100) {
+                    this.settings.currentLevel = this.settings.tankCapacity * 0.8; // Default to 80%
+                }
+            }
         }
     }
 
@@ -62,16 +98,21 @@ class WaterVolumeManager {
     updateDisplay() {
         // Update water volume display
         const waterVolumeValue = document.getElementById('water-level-value');
-        const percentage = (this.settings.currentLevel / this.settings.tankCapacity * 100);
+        
+        // Ensure valid numbers
+        const currentLevel = typeof this.settings.currentLevel === 'number' && !isNaN(this.settings.currentLevel) ? this.settings.currentLevel : 72;
+        const tankCapacity = typeof this.settings.tankCapacity === 'number' && !isNaN(this.settings.tankCapacity) ? this.settings.tankCapacity : 90;
+        
+        const percentage = (currentLevel / tankCapacity * 100);
         
         if (waterVolumeValue) {
-            waterVolumeValue.textContent = `${this.settings.currentLevel.toFixed(1)}L (${percentage.toFixed(1)}%)`;
+            waterVolumeValue.textContent = `${currentLevel.toFixed(1)}L (${percentage.toFixed(1)}%)`;
         }
 
         // Update status badge
         const statusBadge = document.querySelector('.metric-card .status-badge');
         if (statusBadge) {
-            const percentage = (this.settings.currentLevel / this.settings.tankCapacity * 100);
+            const percentage = (currentLevel / tankCapacity * 100);
             
             if (percentage <= this.settings.lowLevelThreshold) {
                 statusBadge.textContent = 'LOW';
@@ -92,6 +133,12 @@ class WaterVolumeManager {
     updateCountdownDisplay() {
         const countdownElement = document.getElementById('tank-countdown');
         if (!countdownElement) return;
+
+        // Ensure valid numbers
+        if (typeof this.settings.currentLevel !== 'number' || isNaN(this.settings.currentLevel)) {
+            this.settings.currentLevel = 72;
+            this.saveSettings();
+        }
 
         if (!this.settings.emptyTankTime) {
             countdownElement.textContent = 'Tidak terjadwal';
@@ -123,7 +170,10 @@ class WaterVolumeManager {
         countdownElement.textContent = countdownText;
         
         // Change color based on urgency
-        const percentage = (this.settings.currentLevel / this.settings.tankCapacity * 100);
+        const currentLevel = typeof this.settings.currentLevel === 'number' && !isNaN(this.settings.currentLevel) ? this.settings.currentLevel : 72;
+        const tankCapacity = typeof this.settings.tankCapacity === 'number' && !isNaN(this.settings.tankCapacity) ? this.settings.tankCapacity : 90;
+        const percentage = (currentLevel / tankCapacity * 100);
+        
         if (percentage <= this.settings.lowLevelThreshold) {
             countdownElement.style.color = '#ef4444';
         } else if (percentage <= 50) {
@@ -134,7 +184,10 @@ class WaterVolumeManager {
     }
 
     updateStatus() {
-        const percentage = (this.settings.currentLevel / this.settings.tankCapacity * 100);
+        // Ensure valid numbers
+        const currentLevel = typeof this.settings.currentLevel === 'number' && !isNaN(this.settings.currentLevel) ? this.settings.currentLevel : 72;
+        const tankCapacity = typeof this.settings.tankCapacity === 'number' && !isNaN(this.settings.tankCapacity) ? this.settings.tankCapacity : 90;
+        const percentage = (currentLevel / tankCapacity * 100);
         
         // Show low level warning
         if (percentage <= this.settings.lowLevelThreshold) {
@@ -178,8 +231,12 @@ class WaterVolumeManager {
     }
 
     performIrrigation() {
-        if (this.settings.currentLevel >= this.settings.irrigationVolume) {
-            this.settings.currentLevel -= this.settings.irrigationVolume;
+        // Ensure valid numbers
+        const currentLevel = typeof this.settings.currentLevel === 'number' && !isNaN(this.settings.currentLevel) ? this.settings.currentLevel : 72;
+        const irrigationVolume = typeof this.settings.irrigationVolume === 'number' && !isNaN(this.settings.irrigationVolume) ? this.settings.irrigationVolume : 7;
+        
+        if (currentLevel >= irrigationVolume) {
+            this.settings.currentLevel = Math.max(0, currentLevel - irrigationVolume);
             this.calculateEmptyTime();
             this.updateDisplay();
             this.updateStatus();
@@ -189,7 +246,7 @@ class WaterVolumeManager {
             this.logIrrigation();
             
             // Show notification
-            this.showNotification(`Penyiraman dilakukan: ${this.settings.irrigationVolume}L digunakan`, 'success');
+            this.showNotification(`Penyiraman dilakukan: ${irrigationVolume}L digunakan`, 'success');
         } else {
             this.showNotification('Air tidak cukup untuk penyiraman!', 'error');
         }
@@ -205,7 +262,8 @@ class WaterVolumeManager {
     }
 
     refillTank() {
-        this.settings.currentLevel = this.settings.tankCapacity;
+        const tankCapacity = typeof this.settings.tankCapacity === 'number' && !isNaN(this.settings.tankCapacity) ? this.settings.tankCapacity : 90;
+        this.settings.currentLevel = tankCapacity;
         this.settings.lastRefill = new Date();
         this.calculateEmptyTime();
         this.updateDisplay();
@@ -216,10 +274,13 @@ class WaterVolumeManager {
 
     logIrrigation() {
         const logs = JSON.parse(localStorage.getItem('irrigationLogs') || '[]');
+        const irrigationVolume = typeof this.settings.irrigationVolume === 'number' && !isNaN(this.settings.irrigationVolume) ? this.settings.irrigationVolume : 7;
+        const currentLevel = typeof this.settings.currentLevel === 'number' && !isNaN(this.settings.currentLevel) ? this.settings.currentLevel : 72;
+        
         logs.push({
             timestamp: new Date().toISOString(),
-            volume: this.settings.irrigationVolume,
-            remainingLevel: this.settings.currentLevel
+            volume: irrigationVolume,
+            remainingLevel: currentLevel
         });
         
         // Keep only last 100 logs
@@ -269,6 +330,12 @@ class WaterVolumeManager {
 
     updateSettings(newSettings) {
         this.settings = { ...this.settings, ...newSettings };
+        
+        // Ensure current level doesn't exceed new tank capacity
+        if (this.settings.currentLevel > this.settings.tankCapacity) {
+            this.settings.currentLevel = this.settings.tankCapacity * 0.8; // Set to 80% if exceeds
+        }
+        
         this.calculateEmptyTime();
         this.updateDisplay();
         this.updateStatus();
@@ -373,7 +440,7 @@ let waterVolumeManager;
 
 document.addEventListener('DOMContentLoaded', function() {
     waterVolumeManager = new WaterVolumeManager();
+    
+    // Make sure it's available globally
+    window.waterVolumeManager = waterVolumeManager;
 });
-
-// Export for global access
-window.waterVolumeManager = waterVolumeManager;
