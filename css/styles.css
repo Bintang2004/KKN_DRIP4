@@ -246,61 +246,6 @@ body {
   color: rgba(255, 255, 255, 0.8);
 }
 
-/* ========== INTELLIGENT FALLBACK BADGE ========== */
-.intelligent-fallback-badge {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(99, 102, 241, 0.1));
-  border: 1px solid rgba(59, 130, 246, 0.25);
-  border-radius: var(--radius-lg);
-  padding: 8px 16px;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
-  min-width: 200px;
-}
-
-.intelligent-fallback-badge:hover {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.15));
-  border-color: rgba(59, 130, 246, 0.35);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.fallback-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-  border-radius: var(--radius-md);
-  font-size: 16px;
-  box-shadow: var(--shadow-sm);
-  flex-shrink: 0;
-}
-
-.fallback-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-}
-
-.fallback-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.95);
-  line-height: 1.2;
-}
-
-.fallback-status-text {
-  font-size: 11px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.2;
-}
-
 .logo-kkn {
   width: 64px;
   height: 64px;
@@ -1398,9 +1343,8 @@ body {
     gap: 8px;
   }
   
-  .intelligent-fallback-badge,
   .date-time {
-    min-width: 180px;
+    min-width: 200px;
   }
   
   .charts-grid {
@@ -1449,7 +1393,6 @@ body {
     align-self: center;
   }
   
-  .intelligent-fallback-badge,
   .date-time {
     min-width: auto;
     width: 100%;
@@ -1542,14 +1485,6 @@ body {
   
   .current-time {
     font-size: 12px;
-  }
-  
-  .fallback-title {
-    font-size: 12px;
-  }
-  
-  .fallback-status-text {
-    font-size: 10px;
   }
   
   .logo-kkn {
