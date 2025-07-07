@@ -82,8 +82,8 @@
                     <div class="metric-info">
                         <div class="metric-icon water">💧</div>
                         <div class="metric-details">
-                            <h4>Water Level</h4>
-                            <p>Tank water level monitoring</p>
+                            <h4>Water Volume</h4>
+                            <p>Tank water volume monitoring</p>
                         </div>
                     </div>
                     <span class="status-badge low">LOW</span>
@@ -91,17 +91,17 @@
                 <div class="metric-value" id="water-level-value">80.0L (80%)</div>
                 <div class="metric-description">
                     <div class="status-dot-small"></div>
-                    <span>Tank water level monitoring</span>
+                    <span>Tank water volume monitoring</span>
                 </div>
                 <div class="countdown-display">
                     <div class="countdown-label">Perkiraan Habis</div>
                     <div class="countdown-value" id="tank-countdown">Menghitung...</div>
                 </div>
                 <div class="water-level-controls">
-                    <button class="control-btn success" onclick="waterLevelManager?.performIrrigation()">
+                    <button class="control-btn success" onclick="waterVolumeManager?.performIrrigation()">
                         🌱 Siram Manual
                     </button>
-                    <button class="control-btn danger" onclick="waterLevelManager?.emptyTank()">
+                    <button class="control-btn danger" onclick="waterVolumeManager?.emptyTank()">
                         🗑️ Kosongkan
                     </button>
                 </div>
@@ -151,8 +151,8 @@
                     <div class="chart-title">
                         <div class="chart-icon water">💧</div>
                         <div>
-                            <h3>Water Level Monitoring</h3>
-                            <p>Real-time reservoir water level measurements</p>
+                            <h3>Water Volume Monitoring</h3>
+                            <p>Real-time tank water volume measurements</p>
                         </div>
                     </div>
                     <div class="chart-actions">
@@ -166,7 +166,7 @@
                 </div>
                 <div class="chart-footer">
                     <div class="chart-average">
-                        📊 Average: <span class="average-value" id="average1-value">-- cm</span>
+                        📊 Average: <span class="average-value" id="average1-value">-- L</span>
                     </div>
                     <div class="sensor-status">
                         <div class="status-dot-small"></div>
@@ -216,9 +216,9 @@
             </div>
             <div class="control-grid">
                 <div class="control-item">
-                    <h4>Water Level Threshold</h4>
+                    <h4>Water Volume Threshold</h4>
                     <div class="control-value">15 cm</div>
-                    <p class="control-description">Minimum level for irrigation</p>
+                    <p class="control-description">Minimum volume for irrigation</p>
                 </div>
                 <div class="control-item">
                     <h4>Soil Moisture Target</h4>

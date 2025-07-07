@@ -73,7 +73,7 @@ function updateControlPanelDisplay() {
     const duration = document.querySelector('.control-item:nth-child(3) .control-value');
     
     if (waterThreshold) {
-        waterThreshold.textContent = `${currentSettings.waterLevel.lowLevelThreshold}%`;
+        waterThreshold.textContent = `${currentSettings.waterLevel.lowLevelThreshold}% (${(currentSettings.waterLevel.tankCapacity * currentSettings.waterLevel.lowLevelThreshold / 100).toFixed(1)}L)`;
     }
     if (soilTarget) {
         soilTarget.textContent = `${currentSettings.soilMoisture.min}-${currentSettings.soilMoisture.max}%`;
@@ -174,8 +174,8 @@ function saveSettings() {
     saveSettingsToStorage();
     
     // Update water level manager if available
-    if (window.waterLevelManager) {
-        window.waterLevelManager.updateSettings({
+    if (window.waterVolumeManager) {
+        window.waterVolumeManager.updateSettings({
             tankCapacity: tankCapacity,
             irrigationVolume: irrigationVolume,
             lowLevelThreshold: lowLevelThreshold,

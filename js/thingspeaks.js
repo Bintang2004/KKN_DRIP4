@@ -138,9 +138,9 @@ function loadData(period) {
 
     fields.forEach(field => {
         if (field.fieldNumber === 1) {
-            // Use water level manager for water level data
-            if (window.waterLevelManager) {
-                const data = window.waterLevelManager.getChartData(period);
+            // Use water volume manager for water volume data
+            if (window.waterVolumeManager) {
+                const data = window.waterVolumeManager.getChartData(period);
                 const ctx = document.getElementById(field.id).getContext('2d');
                 if (charts[field.id]) {
                     charts[field.id].destroy();

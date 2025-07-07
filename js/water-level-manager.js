@@ -1,5 +1,5 @@
-// Water Level Management System
-class WaterLevelManager {
+// Water Volume Management System
+class WaterVolumeManager {
     constructor() {
         this.settings = {
             tankCapacity: 100, // liters
@@ -22,14 +22,14 @@ class WaterLevelManager {
     }
 
     loadSettings() {
-        const saved = localStorage.getItem('waterLevelSettings');
+        const saved = localStorage.getItem('waterVolumeSettings');
         if (saved) {
             this.settings = { ...this.settings, ...JSON.parse(saved) };
         }
     }
 
     saveSettings() {
-        localStorage.setItem('waterLevelSettings', JSON.stringify(this.settings));
+        localStorage.setItem('waterVolumeSettings', JSON.stringify(this.settings));
     }
 
     initializeSystem() {
@@ -60,12 +60,12 @@ class WaterLevelManager {
     }
 
     updateDisplay() {
-        // Update water level display
-        const waterLevelValue = document.getElementById('water-level-value');
+        // Update water volume display
+        const waterVolumeValue = document.getElementById('water-level-value');
         const percentage = (this.settings.currentLevel / this.settings.tankCapacity * 100).toFixed(1);
         
-        if (waterLevelValue) {
-            waterLevelValue.textContent = `${this.settings.currentLevel.toFixed(1)}L (${percentage}%)`;
+        if (waterVolumeValue) {
+            waterVolumeValue.textContent = `${this.settings.currentLevel.toFixed(1)}L (${percentage}%)`;
         }
 
         // Update status badge
@@ -145,20 +145,20 @@ class WaterLevelManager {
     }
 
     showLowLevelWarning() {
-        let warningElement = document.getElementById('low-level-warning');
+        let warningElement = document.getElementById('low-volume-warning');
         
         if (!warningElement) {
             warningElement = document.createElement('div');
-            warningElement.id = 'low-level-warning';
+            warningElement.id = 'low-volume-warning';
             warningElement.className = 'low-level-warning';
             warningElement.innerHTML = `
                 <div class="warning-content">
                     <div class="warning-icon">⚠️</div>
                     <div class="warning-text">
-                        <h4>Level Air Rendah!</h4>
+                        <h4>Volume Air Rendah!</h4>
                         <p>Tandon perlu diisi ulang segera</p>
                     </div>
-                    <button class="refill-button" onclick="waterLevelManager.refillTank()">
+                    <button class="refill-button" onclick="waterVolumeManager.refillTank()">
                         💧 Sudah Mengisi Tandon
                     </button>
                 </div>
@@ -171,7 +171,7 @@ class WaterLevelManager {
     }
 
     hideLowLevelWarning() {
-        const warningElement = document.getElementById('low-level-warning');
+        const warningElement = document.getElementById('low-volume-warning');
         if (warningElement) {
             warningElement.remove();
         }
@@ -368,12 +368,9 @@ class WaterLevelManager {
     }
 }
 
-// Initialize water level manager
-let waterLevelManager;
+// Initialize water volume manager
+let waterVolumeManager;
 
 document.addEventListener('DOMContentLoaded', function() {
-    waterLevelManager = new WaterLevelManager();
+    waterVolumeManager = new WaterVolumeManager();
 });
-
-// Export for global access
-window.waterLevelManager = waterLevelManager;
