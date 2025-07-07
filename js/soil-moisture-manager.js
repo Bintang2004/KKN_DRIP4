@@ -315,7 +315,11 @@ class SoilMoistureManager {
         if (!nextScheduleElement) return;
         
         const now = new Date();
-        const currentTime = now.getHours() * 60 + now.getMinutes();
+        // Convert to WITA (UTC+8)
+        const witaOffset = 8 * 60; // WITA is UTC+8
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const witaTime = new Date(utc + (witaOffset * 60000));
+        const currentTime = witaTime.getHours() * 60 + witaTime.getMinutes();
         
         // Get enabled schedules and convert to minutes
         const enabledSchedules = this.settings.scheduledIrrigations
@@ -336,15 +340,15 @@ class SoilMoistureManager {
         // If no schedule today, use first schedule tomorrow
         if (!nextSchedule) {
             nextSchedule = enabledSchedules[0];
-            nextScheduleElement.textContent = `${nextSchedule.time}`;
+            nextScheduleElement.textContent = `${nextSchedule.time} WITA`;
             
             // Update description to show it's tomorrow
             const descriptionElement = document.querySelector('.control-item:nth-child(4) .control-description');
             if (descriptionElement) {
-                descriptionElement.textContent = 'Besok pagi';
+                descriptionElement.textContent = 'Besok';
             }
         } else {
-            nextScheduleElement.textContent = nextSchedule.time;
+            nextScheduleElement.textContent = `${nextSchedule.time} WITA`;
             
             // Update description for today's schedule
             const descriptionElement = document.querySelector('.control-item:nth-child(4) .control-description');

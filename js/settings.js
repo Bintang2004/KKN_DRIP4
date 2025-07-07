@@ -276,7 +276,7 @@ function resetSettings() {
                 window.waterVolumeManager.updateNextScheduleDisplay();
                 window.soilMoistureManager.updateNextScheduleDisplay();
             }
-        }, 500);
+        }, 200);
         
         // Sync irrigation schedules between both managers
         if (window.waterVolumeManager && window.soilMoistureManager) {
@@ -303,13 +303,16 @@ function resetSettings() {
                 console.log('🔄 Final schedule verification:');
                 console.log('Water Manager Schedules:', window.waterVolumeManager.settings.schedules);
                 console.log('Soil Manager Schedules:', window.soilMoistureManager.settings.scheduledIrrigations);
-            }, 200);
+            }, 100);
         }
         
         // Force immediate next schedule display update
         setTimeout(() => {
             if (window.waterVolumeManager) {
                 window.waterVolumeManager.updateNextScheduleDisplay();
+            }
+            if (window.soilMoistureManager) {
+                window.soilMoistureManager.updateNextScheduleDisplay();
             }
         }, 100);
 }

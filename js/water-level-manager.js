@@ -440,7 +440,11 @@ class WaterVolumeManager {
         if (!nextScheduleElement) return;
         
         const now = new Date();
-        const currentTime = now.getHours() * 60 + now.getMinutes();
+        // Convert to WITA (UTC+8)
+        const witaOffset = 8 * 60; // WITA is UTC+8
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const witaTime = new Date(utc + (witaOffset * 60000));
+        const currentTime = witaTime.getHours() * 60 + witaTime.getMinutes();
         
         // Get enabled schedules and convert to minutes
         const enabledSchedules = this.settings.schedules
@@ -462,10 +466,31 @@ class WaterVolumeManager {
         // If no schedule today, use first schedule tomorrow
         if (!nextSchedule) {
             nextSchedule = enabledSchedules[0];
-            nextScheduleElement.textContent = `${nextSchedule.time} (besok)`;
+            nextScheduleElement.textContent = `${nextSchedule.time} WITA`;
+            
+            // Update description to show it's tomorrow
+            const descriptionElement = document.querySelector('.control-item:nth-child(4) .control-description');
+            if (descriptionElement) {
+                descriptionElement.textContent = 'Besok';
+            }
         } else {
-            nextScheduleElement.textContent = nextSchedule.time;
+            nextScheduleElement.textContent = `${nextSchedule.time} WITA`;
+            
+            // Update description for today's schedule
+            const descriptionElement = document.querySelector('.control-item:nth-child(4) .control-description');
+            if (descriptionElement) {
+                const hoursUntil = Math.floor((nextSchedule.minutes - currentTime) / 60);
+                const minutesUntil = (nextSchedule.minutes - currentTime) % 60;
+                
+                if (hoursUntil > 0) {
+                    descriptionElement.textContent = `Dalam ${hoursUntil} jam ${minutesUntil} menit`;
+                } else {
+                    descriptionElement.textContent = `Dalam ${minutesUntil} menit`;
+                }
+            }
         }
+        
+        console.log('🕐 Water manager next schedule updated:', nextSchedule ? nextSchedule.time : 'None', 'from schedules:', this.settings.schedules);
     }
 
     showNotification(message, type) {
