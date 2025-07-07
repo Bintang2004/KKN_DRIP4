@@ -21,18 +21,31 @@
                 </div>
             </div>
             <div class="header-right">
-                <button class="settings-button" onclick="openSettings()">
-                    ⚙️ Settings
-                </button>
-                <div class="status-indicator">
-                    <div class="status-dot"></div>
-                    <span>System Online</span>
+                <div class="header-center">
+                    <button class="settings-button" onclick="openSettings()">
+                        ⚙️ Settings
+                    </button>
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span>System Online</span>
+                    </div>
                 </div>
-                <div class="date-time">
-                    <div class="organization">KKN PPM UGM</div>
-                    <div class="current-time" id="current-time">Senin, 7 Juli 2025</div>
+                <div class="header-info">
+                    <div class="date-time">
+                        <div class="organization">KKN PPM UGM</div>
+                        <div class="current-time" id="current-time">Senin, 7 Juli 2025</div>
+                    </div>
+                    <div class="intelligent-fallback-badge" id="intelligent-fallback-badge">
+                        <div class="fallback-icon">🤖</div>
+                        <div class="fallback-text">
+                            <span class="fallback-title">Intelligent Fallback</span>
+                            <span class="fallback-status-text" id="fallback-status-text">Update 0m lalu</span>
+                        </div>
+                    </div>
                 </div>
-                <img src="img/LOGO  KKN.png" alt="Logo KKN-PPM UGM" class="logo-kkn">
+                <div class="header-logo">
+                    <img src="img/LOGO  KKN.png" alt="Logo KKN-PPM UGM" class="logo-kkn">
+                </div>
             </div>
         </header>
 

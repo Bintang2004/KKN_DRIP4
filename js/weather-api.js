@@ -850,36 +850,48 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Add method to WeatherAPI class
 WeatherAPI.prototype.updateFallbackStatus = function() {
-    const fallbackStatusElement = document.getElementById('fallback-status');
-    if (!fallbackStatusElement) return;
+    // Update the header fallback badge
+    const fallbackBadge = document.getElementById('intelligent-fallback-badge');
+    const fallbackStatusText = document.getElementById('fallback-status-text');
     
     const isUsingFallback = this.currentWeather.source === 'Intelligent Fallback';
     const enabledAPIs = this.apiSources.filter(source => source.enabled).length;
     
-    if (isUsingFallback) {
-        fallbackStatusElement.innerHTML = `
-            <div class="status-indicator-wrapper">
-                <span class="status-dot"></span>
-                <span class="status-text">Fallback aktif - Data simulasi</span>
-            </div>
-        `;
-        fallbackStatusElement.className = 'fallback-status warning';
-    } else {
-        fallbackStatusElement.innerHTML = `
-            <div class="status-indicator-wrapper">
-                <span class="status-dot"></span>
-                <span class="status-text">Data real-time dari ${this.currentWeather.source}</span>
-            </div>
-        `;
-        fallbackStatusElement.className = 'fallback-status';
+    if (fallbackStatusText) {
+        if (isUsingFallback) {
+            fallbackStatusText.textContent = 'Data simulasi aktif';
+            if (fallbackBadge) {
+                fallbackBadge.style.borderColor = 'rgba(245, 158, 11, 0.35)';
+                fallbackBadge.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.1))';
+            }
+        } else {
+            fallbackStatusText.textContent = `Update ${this.currentWeather.dataAge}m lalu`;
+            if (fallbackBadge) {
+                fallbackBadge.style.borderColor = 'rgba(59, 130, 246, 0.25)';
+                fallbackBadge.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(99, 102, 241, 0.1))';
+            }
+        }
     }
     
-    // Update fallback info based on API availability
-    if (enabledAPIs === 0) {
-        const fallbackInfo = document.querySelector('.intelligent-fallback-info');
-        if (fallbackInfo) {
-            fallbackInfo.style.borderColor = 'rgba(245, 158, 11, 0.3)';
-            fallbackInfo.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.05))';
+    // Also update the main fallback status if it exists
+    const fallbackStatusElement = document.getElementById('fallback-status');
+    if (fallbackStatusElement) {
+        if (isUsingFallback) {
+            fallbackStatusElement.innerHTML = `
+                <div class="status-indicator-wrapper">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Fallback aktif - Data simulasi</span>
+                </div>
+            `;
+            fallbackStatusElement.className = 'fallback-status warning';
+        } else {
+            fallbackStatusElement.innerHTML = `
+                <div class="status-indicator-wrapper">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Data real-time dari ${this.currentWeather.source}</span>
+                </div>
+            `;
+            fallbackStatusElement.className = 'fallback-status';
         }
     }
 };
