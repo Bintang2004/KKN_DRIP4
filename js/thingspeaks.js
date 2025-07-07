@@ -56,22 +56,28 @@ function updateSoilMoistureMetrics() {
 window.onload = function() {
     updateDateAndTime();
     
-    // Ensure all managers are initialized
+    // Force update all displays after initialization
     setTimeout(() => {
         if (window.waterVolumeManager) {
             window.waterVolumeManager.updateDisplay();
         }
         if (window.soilMoistureManager) {
             window.soilMoistureManager.updateDisplay();
+        } else {
+            // If soil moisture manager not ready, initialize it
+            if (typeof SoilMoistureManager !== 'undefined') {
+                window.soilMoistureManager = new SoilMoistureManager();
+                window.soilMoistureManager.updateDisplay();
+            }
         }
-    }, 1000);
+    }, 1500);
     
     loadData('daily');
     
     // Update time every second
     setInterval(updateDateAndTime, 1000);
-    // Update metrics every 30 seconds to ensure synchronization
-    setInterval(updateSoilMoistureMetrics, 30000);
+    // Update metrics every 15 seconds to ensure synchronization
+    setInterval(updateSoilMoistureMetrics, 15000);
 };
 
 document.addEventListener('DOMContentLoaded', function() {

@@ -94,6 +94,10 @@ class SoilMoistureManager {
     }
 
     initializeSystem() {
+        // Force immediate display update
+        this.updateDisplay();
+        
+        // Create weather control
         this.updateDisplay();
         this.createWeatherControl();
         
@@ -104,6 +108,11 @@ class SoilMoistureManager {
         
         // Listen for weather updates from WeatherAPI
         this.setupWeatherListener();
+        
+        // Force another update after 1 second to ensure everything is loaded
+        setTimeout(() => {
+            this.updateDisplay();
+        }, 1000);
     }
 
     createWeatherControl() {
@@ -366,28 +375,44 @@ class SoilMoistureManager {
     updateDisplay() {
         // Ensure currentMoisture is a valid number
         if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture) || this.settings.currentMoisture < 0 || this.settings.currentMoisture > 100) {
-            this.settings.currentMoisture = 45;
+            this.settings.currentMoisture = 45.0;
             this.saveSettings();
         }
         
         // Update soil moisture value
         const soilMoistureValue = document.getElementById('soil-moisture-value');
         if (soilMoistureValue) {
-            const moistureValue = parseFloat(this.settings.currentMoisture);
-            if (!isNaN(moistureValue)) {
+            const moistureValue = Number(this.settings.currentMoisture);
+            if (!isNaN(moistureValue) && moistureValue >= 0 && moistureValue <= 100) {
                 soilMoistureValue.textContent = `${moistureValue.toFixed(1)}%`;
             } else {
                 soilMoistureValue.textContent = '45.0%';
-                this.settings.currentMoisture = 45;
+                this.settings.currentMoisture = 45.0;
                 this.saveSettings();
             }
+        } else {
+            // If element not found, try again in 500ms
+            setTimeout(() => {
+                this.updateDisplay();
+            }, 500);
         }
         
         // Update status badge
         const statusBadge = document.querySelector('.metric-card:nth-child(2) .status-badge');
         if (statusBadge) {
-            const range = this.getMoistureRange(this.settings.currentMoisture);
-            statusBadge.textContent = range.status.toUpperCase();
+            const moistureValue = Number(this.settings.currentMoisture);
+            const range = this.getMoistureRange(moistureValue);
+            
+            // Map status to display text
+            const statusText = {
+                'dry': 'DRY',
+                'low': 'LOW', 
+                'wet': 'WET',
+                'very-wet': 'VERY WET',
+                'saturated': 'SATURATED'
+            };
+            
+            statusBadge.textContent = statusText[range.status] || 'WET';
             statusBadge.className = `status-badge ${range.status}`;
         }
         
@@ -644,22 +669,27 @@ class SoilMoistureManager {
 let soilMoistureManager;
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Wait a bit for water volume manager to initialize first
-    setTimeout(() => {
-        // Clear any corrupted data first
-        const saved = localStorage.getItem('soilMoistureSettings');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                if (typeof parsed.currentMoisture !== 'number' || isNaN(parsed.currentMoisture)) {
-                    localStorage.removeItem('soilMoistureSettings');
-                }
-            } catch (e) {
+    // Clear any corrupted data first
+    const saved = localStorage.getItem('soilMoistureSettings');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            if (typeof parsed.currentMoisture !== 'number' || isNaN(parsed.currentMoisture)) {
                 localStorage.removeItem('soilMoistureSettings');
             }
+        } catch (e) {
+            localStorage.removeItem('soilMoistureSettings');
         }
-        
-        soilMoistureManager = new SoilMoistureManager();
-        window.soilMoistureManager = soilMoistureManager;
-    }, 500);
+    }
+    
+    // Initialize immediately
+    soilMoistureManager = new SoilMoistureManager();
+    window.soilMoistureManager = soilMoistureManager;
+    
+    // Force initial display update
+    setTimeout(() => {
+        if (window.soilMoistureManager) {
+            window.soilMoistureManager.updateDisplay();
+        }
+    }, 100);
 });
