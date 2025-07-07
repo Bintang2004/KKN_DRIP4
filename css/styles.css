@@ -1437,3 +1437,60 @@ body {
 .notification.error {
   background: linear-gradient(135deg, var(--error-red), #dc2626) !important;
 }
+
+/* ========== WEATHER STATUS INDICATOR ========== */
+.weather-status {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-lg);
+  padding: 8px 12px;
+  margin-left: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.weather-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.weather-source {
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.weather-update {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+/* ========== WEATHER NOTIFICATION ========== */
+.weather-notification {
+  font-family: 'Inter', sans-serif;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ========== ENHANCED TOOLTIPS ========== */
+.env-item {
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.env-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+/* ========== WEATHER ACCURACY INDICATORS ========== */
+.location-details p {
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.location-details p:hover {
+  opacity: 0.8;
+}
