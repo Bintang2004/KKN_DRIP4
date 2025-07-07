@@ -34,11 +34,8 @@ function updateDateAndTime() {
 
 // Update only soil moisture metrics
 function updateSoilMoistureMetrics() {
-    // Simulate real-time soil moisture data updates
-    const soilMoisture = (Math.random() * 40 + 60).toFixed(1);
-    
-    // Only update soil moisture, not water level
-    document.getElementById('soil-moisture-value').textContent = `${soilMoisture}%`;
+    // Soil moisture is now managed by SoilMoistureManager
+    // This function is kept for compatibility but does nothing
     
     // Update next schedule
     const now = new Date();
@@ -61,7 +58,7 @@ window.onload = function() {
     
     // Update time every second
     setInterval(updateDateAndTime, 1000);
-    // Update soil moisture metrics every 30 seconds (not water level)
+    // Update next schedule every 30 seconds
     setInterval(updateSoilMoistureMetrics, 30000);
 };
 
@@ -147,6 +144,18 @@ function loadData(period) {
                 }
                 charts[field.id] = createChart(ctx, data, field.color, labels[period].unit, labels[period].format, field.title);
                 updateAverage(field.averageId, data, 'L');
+                document.getElementById(field.id).parentElement.querySelector('.chart-message').textContent = '';
+            }
+        } else if (field.fieldNumber === 2) {
+            // Use soil moisture manager for soil moisture data
+            if (window.soilMoistureManager) {
+                const data = window.soilMoistureManager.getChartData(period);
+                const ctx = document.getElementById(field.id).getContext('2d');
+                if (charts[field.id]) {
+                    charts[field.id].destroy();
+                }
+                charts[field.id] = createChart(ctx, data, field.color, labels[period].unit, labels[period].format, field.title);
+                updateAverage(field.averageId, data, field.unit);
                 document.getElementById(field.id).parentElement.querySelector('.chart-message').textContent = '';
             }
         } else if (period === 'monthly') {

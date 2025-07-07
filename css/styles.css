@@ -1118,6 +1118,21 @@ body {
   color: #065f46;
 }
 
+.status-badge.dry {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #991b1b;
+}
+
+.status-badge.very-wet {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1e40af;
+}
+
+.status-badge.saturated {
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  color: #5b21b6;
+}
+
 /* ========== COUNTDOWN DISPLAY ========== */
 .countdown-display {
   background: var(--bg-gray-50);
@@ -1140,6 +1155,65 @@ body {
   font-size: 14px;
   font-weight: 700;
   color: var(--text-dark);
+}
+
+/* ========== WEATHER CONTROL ========== */
+.weather-control {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--bg-gray-50);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-gray);
+}
+
+.weather-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.weather-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-gray);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.weather-display {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.weather-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.weather-btn {
+  flex: 1;
+  background: white;
+  border: 1px solid var(--border-gray);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-gray);
+}
+
+.weather-btn:hover {
+  background: var(--bg-gray-50);
+  color: var(--text-dark);
+}
+
+.weather-btn.active {
+  background: var(--success-green);
+  color: white;
+  border-color: var(--success-green);
 }
 
 /* ========== RESPONSIVE DESIGN ========== */
