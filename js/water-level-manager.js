@@ -456,7 +456,11 @@ class WaterVolumeManager {
             .sort((a, b) => a.minutes - b.minutes);
         
         if (enabledSchedules.length === 0) {
-            nextScheduleElement.textContent = 'Tidak ada jadwal';
+            nextScheduleElement.textContent = 'Tidak Terjadwal';
+            const descriptionElement = document.querySelector('.control-item:nth-child(4) .control-description');
+            if (descriptionElement) {
+                descriptionElement.textContent = 'Auto irrigation dinonaktifkan';
+            }
             return;
         }
         
@@ -471,7 +475,7 @@ class WaterVolumeManager {
             // Update description to show it's tomorrow
             const descriptionElement = document.querySelector('.control-item:nth-child(4) .control-description');
             if (descriptionElement) {
-                descriptionElement.textContent = 'Besok';
+                descriptionElement.textContent = 'Drip irrigation otomatis besok';
             }
         } else {
             nextScheduleElement.textContent = `${nextSchedule.time} WITA`;
@@ -483,9 +487,9 @@ class WaterVolumeManager {
                 const minutesUntil = (nextSchedule.minutes - currentTime) % 60;
                 
                 if (hoursUntil > 0) {
-                    descriptionElement.textContent = `Dalam ${hoursUntil} jam ${minutesUntil} menit`;
+                    descriptionElement.textContent = `Drip irrigation otomatis dalam ${hoursUntil} jam ${minutesUntil} menit`;
                 } else {
-                    descriptionElement.textContent = `Dalam ${minutesUntil} menit`;
+                    descriptionElement.textContent = `Drip irrigation otomatis dalam ${minutesUntil} menit`;
                 }
             }
         }
