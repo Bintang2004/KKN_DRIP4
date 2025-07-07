@@ -87,7 +87,7 @@ function showNotification(message, type) {
 const customColumnNames = [
     'Timestamp',
     'Water Level (cm)',
-    'Soil Humidity (%)',
+    'Soil Moisture (%)',
 ];
 
 document.getElementById('download-report').addEventListener('click', function() {

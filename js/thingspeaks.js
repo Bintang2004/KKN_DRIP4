@@ -36,10 +36,10 @@ function updateDateAndTime() {
 function updateSystemMetrics() {
     // Simulate real-time data updates
     const waterLevel = (Math.random() * 50 + 10).toFixed(1);
-    const soilHumidity = (Math.random() * 40 + 60).toFixed(1);
+    const soilMoisture = (Math.random() * 40 + 60).toFixed(1);
     
     document.getElementById('water-level-value').textContent = `${waterLevel} cm`;
-    document.getElementById('soil-humidity-value').textContent = `${soilHumidity}%`;
+    document.getElementById('soil-moisture-value').textContent = `${soilMoisture}%`;
     
     // Update next schedule
     const now = new Date();
@@ -133,7 +133,7 @@ function loadData(period) {
 
     const fields = [
         { id: 'chart1', fieldNumber: 1, color: '#3b82f6', averageId: 'average1-value', title: 'Water Level', unit: 'cm' },
-        { id: 'chart2', fieldNumber: 2, color: '#10b981', averageId: 'average2-value', title: 'Soil Humidity', unit: '%' },
+        { id: 'chart2', fieldNumber: 2, color: '#10b981', averageId: 'average2-value', title: 'Soil Moisture', unit: '%' },
     ];
 
     fields.forEach(field => {

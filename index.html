@@ -17,10 +17,13 @@
                 <div class="logo-icon">🌱</div>
                 <div class="header-title">
                     <h1 class="main-title">Smart Drip Irrigation System</h1>
-                    <p class="subtitle">Kelurahan Tanah Jaya - Water Level & Soil Humidity Monitoring</p>
+                    <p class="subtitle">Kelurahan Tanah Jaya - Water Level & Soil Moisture Monitoring</p>
                 </div>
             </div>
             <div class="header-right">
+                <button class="settings-button" onclick="openSettings()">
+                    ⚙️ Settings
+                </button>
                 <div class="status-indicator">
                     <div class="status-dot"></div>
                     <span>System Online</span>
@@ -97,13 +100,13 @@
                     <div class="metric-info">
                         <div class="metric-icon soil">🌱</div>
                         <div class="metric-details">
-                            <h4>Soil Humidity</h4>
+                            <h4>Soil Moisture</h4>
                             <p>Soil moisture content</p>
                         </div>
                     </div>
                     <span class="status-badge wet">WET</span>
                 </div>
-                <div class="metric-value" id="soil-humidity-value">100.0%</div>
+                <div class="metric-value" id="soil-moisture-value">100.0%</div>
                 <div class="metric-description">
                     <div class="status-dot-small"></div>
                     <span>Soil moisture content</span>
@@ -165,7 +168,7 @@
                     <div class="chart-title">
                         <div class="chart-icon soil">🌱</div>
                         <div>
-                            <h3>Soil Humidity Monitoring</h3>
+                            <h3>Soil Moisture Monitoring</h3>
                             <p>Real-time soil moisture measurements</p>
                         </div>
                     </div>
@@ -206,7 +209,7 @@
                     <p class="control-description">Minimum level for irrigation</p>
                 </div>
                 <div class="control-item">
-                    <h4>Soil Humidity Target</h4>
+                    <h4>Soil Moisture Target</h4>
                     <div class="control-value">60-80%</div>
                     <p class="control-description">Optimal moisture range</p>
                 </div>
@@ -241,7 +244,92 @@
         </footer>
     </div>
 
+    <!-- Settings Modal -->
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h2>⚙️ System Settings</h2>
+                <button class="close-button" onclick="closeSettings()">✕</button>
+            </div>
+            
+            <div class="settings-body">
+                <div class="settings-section">
+                    <h3>💧 Water Level Configuration</h3>
+                    <div class="setting-group">
+                        <label for="waterLevelMin">Minimum Water Level (cm)</label>
+                        <input type="number" id="waterLevelMin" value="10" min="0" max="100" step="1">
+                        <small>Minimum level required for irrigation</small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="waterLevelMax">Maximum Water Level (cm)</label>
+                        <input type="number" id="waterLevelMax" value="80" min="0" max="100" step="1">
+                        <small>Maximum safe water level</small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="waterLevelAlert">Low Water Alert (cm)</label>
+                        <input type="number" id="waterLevelAlert" value="15" min="0" max="100" step="1">
+                        <small>Alert when water level drops below this value</small>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>🌱 Soil Moisture Configuration</h3>
+                    <div class="setting-group">
+                        <label for="soilMoistureMin">Minimum Soil Moisture (%)</label>
+                        <input type="number" id="soilMoistureMin" value="40" min="0" max="100" step="1">
+                        <small>Start irrigation when moisture drops below this level</small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="soilMoistureMax">Maximum Soil Moisture (%)</label>
+                        <input type="number" id="soilMoistureMax" value="80" min="0" max="100" step="1">
+                        <small>Stop irrigation when moisture reaches this level</small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="soilMoistureOptimal">Optimal Soil Moisture (%)</label>
+                        <input type="number" id="soilMoistureOptimal" value="65" min="0" max="100" step="1">
+                        <small>Target moisture level for optimal plant growth</small>
+                <div class="settings-section">
+                    <h3>⏰ Irrigation Schedule</h3>
+                    <div class="setting-group">
+                        <label for="irrigationDuration">Irrigation Duration (minutes)</label>
+                        <input type="number" id="irrigationDuration" value="15" min="1" max="60" step="1">
+                        <small>How long each irrigation cycle should run</small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="irrigationInterval">Check Interval (minutes)</label>
+                        <input type="number" id="irrigationInterval" value="30" min="5" max="120" step="5">
+                        <small>How often to check soil moisture levels</small>
+                    </div>
+                </div>
+                    </div>
+                <div class="settings-section">
+                    <h3>🔔 Alert Settings</h3>
+                    <div class="setting-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="enableAlerts" checked>
+                            <label for="enableAlerts">Enable System Alerts</label>
+                        </div>
+                        <small>Receive notifications for system events</small>
+                    </div>
+                    <div class="setting-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="enableAutoIrrigation" checked>
+                            <label for="enableAutoIrrigation">Enable Auto Irrigation</label>
+                        </div>
+                        <small>Automatically start irrigation based on soil moisture</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-footer">
+                <button class="settings-button secondary" onclick="resetSettings()">Reset to Default</button>
+                <button class="settings-button primary" onclick="saveSettings()">Save Settings</button>
+            </div>
+        </div>
+    </div>
+                </div>
     <script src="js/thingspeaks.js"></script>
     <script src="js/download.js"></script>
+    <script src="js/settings.js"></script>
 </body>
 </html>
