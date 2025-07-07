@@ -4,8 +4,8 @@
   "description": "Drip Irrigation Monitoring System - KKN-PPM UGM 2025",
   "main": "index.html",
   "scripts": {
-    "dev": "python -m http.server 8000",
-    "start": "python -m http.server 8000"
+    "dev": "serve . -l 8000",
+    "start": "serve . -l 8000"
   },
   "keywords": [
     "irrigation",
