@@ -635,34 +635,42 @@ class WeatherAPI {
     }
 
     updateWeatherStatusIndicator() {
-        // Add weather status to header if not exists
-        let weatherStatus = document.getElementById('weather-status');
-        if (!weatherStatus) {
-            weatherStatus = document.createElement('div');
-            weatherStatus.id = 'weather-status';
-            weatherStatus.className = 'weather-status';
+        // Update fallback status in irrigation card
+        this.updateFallbackStatusInIrrigationCard();
+    }
+
+    updateFallbackStatusInIrrigationCard() {
+        const fallbackStatus = document.getElementById('weather-fallback-status');
+        const fallbackSource = document.getElementById('fallback-source');
+        const fallbackUpdate = document.getElementById('fallback-update');
+        
+        if (fallbackStatus && fallbackSource && fallbackUpdate) {
+            const isSimulated = this.currentWeather.source === 'Intelligent Fallback';
             
-            const headerRight = document.querySelector('.header-right');
-            if (headerRight) {
-                headerRight.appendChild(weatherStatus);
+            // Update source text
+            if (isSimulated) {
+                fallbackSource.textContent = 'Data simulasi aktif';
+                fallbackStatus.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.05))';
+                fallbackStatus.style.borderColor = 'rgba(245, 158, 11, 0.2)';
+            } else {
+                fallbackSource.textContent = `Data real-time dari ${this.currentWeather.source}`;
+                fallbackStatus.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05))';
+                fallbackStatus.style.borderColor = 'rgba(16, 185, 129, 0.2)';
+            }
+            
+            // Update time
+            fallbackUpdate.textContent = `Update ${this.currentWeather.dataAge}m lalu`;
+            
+            // Update icon based on accuracy
+            const fallbackIcon = fallbackStatus.querySelector('.fallback-icon');
+            if (fallbackIcon) {
+                if (isSimulated) {
+                    fallbackIcon.textContent = '🤖';
+                } else {
+                    fallbackIcon.textContent = this.getAccuracyIcon();
+                }
             }
         }
-        
-        const accuracyColor = {
-            'very-high': '#10b981',
-            'high': '#f59e0b',
-            'medium': '#ef4444',
-            'low': '#6b7280'
-        };
-        
-        weatherStatus.innerHTML = `
-            <div class="weather-info">
-               <span class="weather-source">${this.getSourceIcon()} ${this.currentWeather.source}</span>
-                <span class="weather-update">Update ${this.currentWeather.dataAge}m lalu</span>
-            </div>
-        `;
-        
-        weatherStatus.style.borderColor = accuracyColor[this.currentWeather.accuracy] || '#6b7280';
     }
 
     updateFallbackStatus() {
