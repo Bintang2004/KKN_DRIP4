@@ -3,28 +3,30 @@ class SoilMoistureManager {
     constructor() {
         this.settings = {
             currentMoisture: 45, // percentage
-            irrigationDuration: 7, // minutes (configurable)
-            moistureIncreaseRate: 2.85, // percentage per minute during irrigation
+            irrigationDuration: 15, // minutes (configurable from settings)
+            moistureIncreaseRate: 2.0, // percentage per minute during irrigation
             moistureDecreaseRate: {
-                cerah: 1, // percentage per 15 minutes
-                mendung: 1, // percentage per 30 minutes
+                cerah: 1, // percentage per 15 minutes (faster evaporation)
+                mendung: 1, // percentage per 30 minutes (slower evaporation)
                 hujan: 0 // no decrease during rain
             },
             weather: 'cerah', // cerah, mendung, hujan
             isIrrigating: false,
             irrigationStartTime: null,
-            irrigationTargetMoisture: 35, // target moisture after irrigation
+            irrigationTargetMoisture: 40, // target moisture after irrigation (25-40% range)
             lastUpdate: new Date(),
             autoWeatherChange: true,
             scheduledIrrigations: ['07:00', '16:00'], // 7 AM and 4 PM
-            lastIrrigationCheck: new Date()
+            lastIrrigationCheck: new Date(),
+            lastMoistureDecrease: new Date(),
+            moistureDecreaseAccumulator: 0 // Track partial decreases
         };
         
         this.moistureRanges = {
-            'Sangat Kering': { min: 0, max: 20, color: '#ef4444', status: 'dry' },
-            'Kering': { min: 21, max: 24, color: '#f59e0b', status: 'low' },
-            'Lembap (Drip Irrigation)': { min: 25, max: 40, color: '#10b981', status: 'wet' },
-            'Basah': { min: 41, max: 69, color: '#3b82f6', status: 'very-wet' },
+            'Sangat Kering': { min: 0, max: 15, color: '#ef4444', status: 'dry' },
+            'Kering': { min: 16, max: 24, color: '#f59e0b', status: 'low' },
+            'Optimal (Drip Irrigation)': { min: 25, max: 40, color: '#10b981', status: 'wet' },
+            'Lembap': { min: 41, max: 69, color: '#3b82f6', status: 'very-wet' },
             'Sangat Basah (Hujan)': { min: 70, max: 100, color: '#8b5cf6', status: 'saturated' }
         };
         
@@ -62,7 +64,7 @@ class SoilMoistureManager {
         if (irrigationSettings) {
             const parsed = JSON.parse(irrigationSettings);
             if (parsed.irrigation) {
-                this.settings.irrigationDuration = parsed.irrigation.duration || this.settings.irrigationDuration;
+                this.settings.irrigationDuration = parsed.irrigation.duration || 15;
             }
             if (parsed.waterLevel) {
                 this.settings.scheduledIrrigations = [
@@ -78,8 +80,8 @@ class SoilMoistureManager {
         }
         
         // Ensure irrigationDuration is valid
-        if (typeof this.settings.irrigationDuration !== 'number' || isNaN(this.settings.irrigationDuration) || this.settings.irrigationDuration <= 0) {
-            this.settings.irrigationDuration = 7;
+        if (typeof this.settings.irrigationDuration !== 'number' || isNaN(this.settings.irrigationDuration) || this.settings.irrigationDuration < 5) {
+            this.settings.irrigationDuration = 15;
         }
     }
 
@@ -128,9 +130,9 @@ class SoilMoistureManager {
                     <span class="weather-display" id="weather-display">${this.weatherIcons[this.settings.weather]} ${this.settings.weather.charAt(0).toUpperCase() + this.settings.weather.slice(1)}</span>
                 </div>
                 <div class="weather-buttons">
-                    <button class="weather-btn ${this.settings.weather === 'cerah' ? 'active' : ''}" onclick="soilMoistureManager.setWeather('cerah')">☀️ Cerah</button>
-                    <button class="weather-btn ${this.settings.weather === 'mendung' ? 'active' : ''}" onclick="soilMoistureManager.setWeather('mendung')">☁️ Mendung</button>
-                    <button class="weather-btn ${this.settings.weather === 'hujan' ? 'active' : ''}" onclick="soilMoistureManager.setWeather('hujan')">🌧️ Hujan</button>
+                    <button class="weather-btn ${this.settings.weather === 'cerah' ? 'active' : ''}" onclick="soilMoistureManager.setWeather('cerah')" title="Evaporasi: -1% per 15 menit">☀️ Cerah</button>
+                    <button class="weather-btn ${this.settings.weather === 'mendung' ? 'active' : ''}" onclick="soilMoistureManager.setWeather('mendung')" title="Evaporasi: -1% per 30 menit">☁️ Mendung</button>
+                    <button class="weather-btn ${this.settings.weather === 'hujan' ? 'active' : ''}" onclick="soilMoistureManager.setWeather('hujan')" title="Kelembaban naik ke 75-90%">🌧️ Hujan</button>
                 </div>
             `;
             
@@ -225,16 +227,17 @@ class SoilMoistureManager {
         
         // Calculate target moisture and increase rate
         const currentMoisture = this.settings.currentMoisture;
-        const targetMoisture = Math.min(40, Math.max(25, currentMoisture + 15)); // Target 25-40% range
+        const targetMoisture = Math.min(40, Math.max(25, currentMoisture + 12)); // Target 25-40% range
         this.settings.irrigationTargetMoisture = targetMoisture;
         
-        // Calculate increase rate: (target - current) / duration
-        const duration = typeof this.settings.irrigationDuration === 'number' && !isNaN(this.settings.irrigationDuration) ? this.settings.irrigationDuration : 7;
-        this.settings.moistureIncreaseRate = Math.max(0.5, (targetMoisture - currentMoisture) / duration);
+        // Reset evaporation accumulator during irrigation
+        this.settings.moistureDecreaseAccumulator = 0;
+        
+        const duration = typeof this.settings.irrigationDuration === 'number' && !isNaN(this.settings.irrigationDuration) ? this.settings.irrigationDuration : 15;
         
         this.saveSettings();
         
-        this.showNotification(`🌱 Drip irrigation dimulai (${duration} menit)`, 'success');
+        this.showNotification(`🌱 Drip irrigation dimulai - target ${targetMoisture.toFixed(1)}% (${duration} menit)`, 'success');
         
         // Stop irrigation after duration
         setTimeout(() => {
@@ -247,9 +250,15 @@ class SoilMoistureManager {
         
         this.settings.isIrrigating = false;
         this.settings.irrigationStartTime = null;
+        
+        // Reset evaporation accumulator after irrigation
+        this.settings.moistureDecreaseAccumulator = 0;
+        this.settings.lastMoistureDecrease = new Date();
+        
         this.saveSettings();
         
-        this.showNotification('🌱 Drip irrigation selesai', 'success');
+        const finalMoisture = this.settings.currentMoisture.toFixed(1);
+        this.showNotification(`🌱 Drip irrigation selesai - kelembaban: ${finalMoisture}%`, 'success');
         
         // Log the irrigation event
         this.logMoisture('irrigation_complete');
@@ -278,9 +287,13 @@ class SoilMoistureManager {
     }
 
     applyRainEffect() {
-        // Rain immediately increases moisture to 70-90%
-        const rainMoisture = 70 + Math.random() * 20; // 70-90%
+        // Rain immediately increases moisture to 70-90% (saturated)
+        const rainMoisture = 75 + Math.random() * 15; // 75-90%
         this.settings.currentMoisture = Math.min(100, Math.max(0, rainMoisture));
+        
+        // Reset evaporation accumulator during rain
+        this.settings.moistureDecreaseAccumulator = 0;
+        
         this.updateDisplay();
         this.saveSettings();
         this.logMoisture('rain_event');
@@ -288,15 +301,15 @@ class SoilMoistureManager {
     }
 
     startMoistureSimulation() {
-        // Update moisture every 15 seconds for better synchronization
+        // Update moisture every 1 minute for realistic time-based changes
         this.moistureInterval = setInterval(() => {
             this.updateMoisture();
-        }, 15000);
+        }, 60000); // 1 minute intervals
         
-        // Also update display every 5 seconds to ensure UI sync
+        // Update display every 15 seconds to ensure UI sync
         this.displayInterval = setInterval(() => {
             this.updateDisplay();
-        }, 5000);
+        }, 15000);
     }
 
     updateWeatherButtons() {
@@ -315,11 +328,11 @@ class SoilMoistureManager {
 
     updateMoisture() {
         const now = new Date();
-        const lastUpdate = this.settings.lastUpdate ? new Date(this.settings.lastUpdate) : new Date(now.getTime() - 30000);
+        const lastUpdate = this.settings.lastUpdate ? new Date(this.settings.lastUpdate) : new Date(now.getTime() - 60000);
         const timeDiff = (now - lastUpdate) / 1000 / 60; // minutes
         
-        // Prevent excessive time differences (max 30 minutes for more realistic updates)
-        const actualTimeDiff = Math.min(timeDiff, 30);
+        // Prevent excessive time differences (max 60 minutes for stability)
+        const actualTimeDiff = Math.min(timeDiff, 60);
         
         // Ensure currentMoisture is valid before calculations
         if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture)) {
@@ -330,37 +343,11 @@ class SoilMoistureManager {
         
         if (this.settings.isIrrigating) {
             // Increase moisture during irrigation
-            const irrigationStartTime = this.settings.irrigationStartTime ? new Date(this.settings.irrigationStartTime) : now;
-            const irrigationTime = (now - irrigationStartTime) / 1000 / 60; // minutes
-            if (irrigationTime <= this.settings.irrigationDuration) {
-                // Gradual increase based on calculated rate
-                const increaseRate = typeof this.settings.moistureIncreaseRate === 'number' && !isNaN(this.settings.moistureIncreaseRate) ? this.settings.moistureIncreaseRate : 2.85;
-                const increaseAmount = increaseRate * actualTimeDiff;
-                const oldMoisture = this.settings.currentMoisture;
-                this.settings.currentMoisture = Math.min(100, this.settings.currentMoisture);
-                moistureChanged = oldMoisture !== this.settings.currentMoisture;
-            }
+            this.processIrrigationIncrease(actualTimeDiff);
+            moistureChanged = true;
         } else if (this.settings.weather !== 'hujan') {
-            // Decrease moisture based on weather (evaporation)
-            let decreaseRate = 0;
-            let interval = 15; // default interval in minutes
-            
-            switch (this.settings.weather) {
-                case 'cerah':
-                    decreaseRate = this.settings.moistureDecreaseRate.cerah; // 1% per 15 minutes
-                    interval = 15;
-                    break;
-                case 'mendung':
-                    decreaseRate = this.settings.moistureDecreaseRate.mendung; // 1% per 30 minutes
-                    interval = 30;
-                    break;
-            }
-            
-            // Calculate decrease based on time passed
-            const decreaseAmount = (decreaseRate * actualTimeDiff) / interval;
-            const oldMoisture = this.settings.currentMoisture;
-            this.settings.currentMoisture = Math.max(0, this.settings.currentMoisture);
-            moistureChanged = oldMoisture !== this.settings.currentMoisture;
+            // Process natural evaporation based on weather
+            moistureChanged = this.processNaturalEvaporation(actualTimeDiff);
         }
         
         // Ensure final value is valid
@@ -380,16 +367,87 @@ class SoilMoistureManager {
         // Only update display if moisture actually changed
         if (moistureChanged) {
             this.updateDisplay();
+        }
+        
+        // Log moisture changes periodically
+        if (Math.random() < 0.1) { // 10% chance to log each update
+            this.logMoisture('periodic_update');
+        }
+    }
+
+    processIrrigationIncrease(timeDiff) {
+        const irrigationStartTime = this.settings.irrigationStartTime ? new Date(this.settings.irrigationStartTime) : new Date();
+        const irrigationTime = (new Date() - irrigationStartTime) / 1000 / 60; // minutes
+        
+        if (irrigationTime <= this.settings.irrigationDuration) {
+            // Gradual increase during irrigation
+            // Target: increase from current to 25-40% range over irrigation duration
+            const targetMoisture = Math.min(40, Math.max(25, this.settings.currentMoisture + 15));
+            const totalIncrease = targetMoisture - this.settings.currentMoisture;
+            const increaseRate = totalIncrease / this.settings.irrigationDuration;
             
-            // Log significant moisture changes
-            if (Math.abs(oldMoisture - this.settings.currentMoisture) > 0.5) {
-                this.logMoisture('significant_change');
+            const increaseAmount = increaseRate * timeDiff;
+            this.settings.currentMoisture = Math.min(targetMoisture, this.settings.currentMoisture + increaseAmount);
+            
+            // Ensure we don't exceed 40% during drip irrigation
+            this.settings.currentMoisture = Math.min(40, this.settings.currentMoisture);
+        }
+    }
+
+    processNaturalEvaporation(timeDiff) {
+        let moistureChanged = false;
+        const oldMoisture = this.settings.currentMoisture;
+        
+        // Get evaporation parameters based on weather
+        const evaporationParams = this.getEvaporationParameters();
+        
+        if (evaporationParams.rate > 0) {
+            // Add time to accumulator
+            this.settings.moistureDecreaseAccumulator += timeDiff;
+            
+            // Check if enough time has passed for a decrease
+            while (this.settings.moistureDecreaseAccumulator >= evaporationParams.interval) {
+                // Apply one decrease unit
+                this.settings.currentMoisture = Math.max(0, this.settings.currentMoisture - evaporationParams.rate);
+                this.settings.moistureDecreaseAccumulator -= evaporationParams.interval;
+                moistureChanged = true;
+                
+                // Log evaporation event
+                if (Math.random() < 0.3) { // 30% chance to log
+                    this.logMoisture(`evaporation_${this.settings.weather}`);
+                }
             }
         }
         
-        // Log moisture changes less frequently
-        if (Math.random() < 0.05) { // 5% chance to log each update
-            this.logMoisture('periodic_update');
+        return moistureChanged;
+    }
+
+    getEvaporationParameters() {
+        switch (this.settings.weather) {
+            case 'cerah':
+                return {
+                    rate: 1, // 1% decrease
+                    interval: 15, // every 15 minutes
+                    description: 'Evaporasi cepat (cuaca cerah)'
+                };
+            case 'mendung':
+                return {
+                    rate: 1, // 1% decrease  
+                    interval: 30, // every 30 minutes
+                    description: 'Evaporasi lambat (cuaca mendung)'
+                };
+            case 'hujan':
+                return {
+                    rate: 0, // no decrease during rain
+                    interval: Infinity,
+                    description: 'Tidak ada evaporasi (hujan)'
+                };
+            default:
+                return {
+                    rate: 1,
+                    interval: 20, // default 20 minutes
+                    description: 'Evaporasi normal'
+                };
         }
     }
 
@@ -526,7 +584,7 @@ class SoilMoistureManager {
         
         // Generate simulated data if no logs exist or insufficient data
         if (logs.length < 10) {
-            return this.generateSimulatedData(startDate, now, period);
+            return this.generateRealisticSimulatedData(startDate, now, period);
         }
         
         const filteredLogs = logs.filter(log => new Date(log.timestamp) >= startDate);
@@ -548,54 +606,70 @@ class SoilMoistureManager {
         return chartData;
     }
 
-    generateSimulatedData(startDate, endDate, period) {
+    generateRealisticSimulatedData(startDate, endDate, period) {
         const data = [];
-        const intervalMinutes = period === 'daily' ? 30 : period === 'weekly' ? 180 : 720; // 30min, 3h, 12h
+        const intervalMinutes = period === 'daily' ? 15 : period === 'weekly' ? 60 : 240; // 15min, 1h, 4h
         
         let currentTime = new Date(startDate);
-        let moisture = Math.max(15, this.settings.currentMoisture - 20); // Start near current value
+        let moisture = Math.max(20, this.settings.currentMoisture - 10); // Start near current value
+        let weather = 'cerah'; // Default weather
+        let evaporationAccumulator = 0;
         
         while (currentTime <= endDate) {
             const hour = currentTime.getHours();
             const minute = currentTime.getMinutes();
             
+            // Simulate weather changes (20% chance every 4 hours)
+            if (hour % 4 === 0 && minute === 0 && Math.random() < 0.2) {
+                const weatherOptions = ['cerah', 'mendung', 'hujan'];
+                weather = weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
+            }
+            
             // Simulate irrigation at scheduled times
-            if ((hour === 7 || hour === 16) && minute === 0) {
-                // Irrigation event - gradual increase over 7 minutes
-                for (let i = 0; i <= 7; i++) {
+            if ((hour === 7 || hour === 16) && minute === 0 && moisture < 35) {
+                // Irrigation event - gradual increase over 15 minutes
+                const irrigationDuration = 15;
+                const targetMoisture = Math.min(40, moisture + 12);
+                const increasePerMinute = (targetMoisture - moisture) / irrigationDuration;
+                
+                for (let i = 0; i <= irrigationDuration; i += 5) {
                     const irrigationTime = new Date(currentTime.getTime() + i * 60 * 1000);
-                    moisture += 2.5; // Increase by ~2.5% per minute
-                    moisture = Math.min(40, moisture);
+                    moisture += increasePerMinute * 5; // Increase every 5 minutes
+                    moisture = Math.min(40, moisture); // Cap at 40% for drip irrigation
                     
                     data.push({
                         x: new Date(irrigationTime),
                         y: parseFloat(moisture.toFixed(1))
                     });
                 }
+                evaporationAccumulator = 0; // Reset after irrigation
             } else {
-                // Natural decrease based on time of day and weather simulation
-                let decreaseRate = 0.5; // Base rate
+                // Natural evaporation based on weather
+                evaporationAccumulator += intervalMinutes;
                 
-                // Simulate weather effects
-                if (hour >= 10 && hour <= 16) {
-                    decreaseRate = 1.0; // Faster evaporation during hot hours
-                } else if (hour >= 18 || hour <= 6) {
-                    decreaseRate = 0.2; // Slower at night
-                }
+                let shouldDecrease = false;
                 
-                // Random weather events
-                if (Math.random() < 0.05) { // 5% chance of rain
-                    moisture = 75 + Math.random() * 15; // Rain effect
-                } else {
-                    moisture -= decreaseRate * (intervalMinutes / 30);
-                    moisture = Math.max(5, moisture);
+                if (weather === 'cerah' && evaporationAccumulator >= 15) {
+                    moisture = Math.max(0, moisture - 1); // -1% per 15 minutes
+                    evaporationAccumulator -= 15;
+                    shouldDecrease = true;
+                } else if (weather === 'mendung' && evaporationAccumulator >= 30) {
+                    moisture = Math.max(0, moisture - 1); // -1% per 30 minutes
+                    evaporationAccumulator -= 30;
+                    shouldDecrease = true;
+                } else if (weather === 'hujan') {
+                    // Rain effect - immediate increase to 75-90%
+                    if (Math.random() < 0.3) { // 30% chance of rain effect
+                        moisture = 75 + Math.random() * 15;
+                        evaporationAccumulator = 0;
+                    }
                 }
-            }
             
-            data.push({
-                x: new Date(currentTime),
-                y: parseFloat(moisture.toFixed(1))
-            });
+                data.push({
+                    x: new Date(currentTime),
+                    y: parseFloat(moisture.toFixed(1))
+                });
+            }
             
             currentTime = new Date(currentTime.getTime() + intervalMinutes * 60 * 1000);
         }
@@ -615,7 +689,8 @@ class SoilMoistureManager {
             moisture: this.settings.currentMoisture,
             weather: this.settings.weather,
             isIrrigating: this.settings.isIrrigating,
-            eventType: eventType
+            eventType: eventType,
+            evaporationAccumulator: this.settings.moistureDecreaseAccumulator
         });
         
         // Keep only last 1000 logs
@@ -682,7 +757,7 @@ class SoilMoistureManager {
         // Update irrigation duration and recalculate rates if needed
         if (newSettings.irrigationDuration) {
             const duration = parseFloat(newSettings.irrigationDuration);
-            if (!isNaN(duration) && duration > 0) {
+            if (!isNaN(duration) && duration >= 5) {
                 this.settings.irrigationDuration = duration;
             }
         }
@@ -716,6 +791,23 @@ class SoilMoistureManager {
             range: this.getMoistureRange(this.settings.currentMoisture),
             isIrrigating: this.settings.isIrrigating,
             weather: this.settings.weather
+        };
+    }
+
+    // Get detailed moisture status for debugging/monitoring
+    getDetailedStatus() {
+        const evaporationParams = this.getEvaporationParameters();
+        
+        return {
+            currentMoisture: this.settings.currentMoisture,
+            weather: this.settings.weather,
+            isIrrigating: this.settings.isIrrigating,
+            evaporationRate: evaporationParams.rate,
+            evaporationInterval: evaporationParams.interval,
+            evaporationAccumulator: this.settings.moistureDecreaseAccumulator,
+            timeUntilNextDecrease: Math.max(0, evaporationParams.interval - this.settings.moistureDecreaseAccumulator),
+            moistureRange: this.getMoistureRange(this.settings.currentMoisture),
+            lastUpdate: this.settings.lastUpdate
         };
     }
 }
