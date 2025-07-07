@@ -271,6 +271,10 @@ function resetSettings() {
                 
                 // Ensure schedules are properly applied
                 window.waterVolumeManager.scheduleIrrigations();
+                
+                // Force immediate next schedule update
+                window.waterVolumeManager.updateNextScheduleDisplay();
+                window.soilMoistureManager.updateNextScheduleDisplay();
             }
         }, 500);
         
@@ -291,6 +295,10 @@ function resetSettings() {
             setTimeout(() => {
                 window.soilMoistureManager.forceSyncScheduledIrrigations();
                 
+                // Force immediate next schedule update
+                window.waterVolumeManager.updateNextScheduleDisplay();
+                window.soilMoistureManager.updateNextScheduleDisplay();
+                
                 // Verify schedules are applied correctly
                 console.log('🔄 Final schedule verification:');
                 console.log('Water Manager Schedules:', window.waterVolumeManager.settings.schedules);
@@ -298,6 +306,12 @@ function resetSettings() {
             }, 200);
         }
         
+        // Force immediate next schedule display update
+        setTimeout(() => {
+            if (window.waterVolumeManager) {
+                window.waterVolumeManager.updateNextScheduleDisplay();
+            }
+        }, 100);
 }
 
 // Show notification

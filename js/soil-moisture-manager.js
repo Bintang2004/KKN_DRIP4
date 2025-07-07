@@ -314,6 +314,9 @@ class SoilMoistureManager {
         const nextScheduleElement = document.getElementById('next-schedule');
         if (!nextScheduleElement) return;
         
+        // Force sync with water manager first
+        this.forceSyncScheduledIrrigations();
+        
         const now = new Date();
         const currentTime = now.getHours() * 60 + now.getMinutes();
         
@@ -336,10 +339,31 @@ class SoilMoistureManager {
         // If no schedule today, use first schedule tomorrow
         if (!nextSchedule) {
             nextSchedule = enabledSchedules[0];
-            nextScheduleElement.textContent = `${nextSchedule.time} (besok)`;
+            nextScheduleElement.textContent = `${nextSchedule.time}`;
+            
+            // Update description to show it's tomorrow
+            const descriptionElement = document.querySelector('.control-item:nth-child(4) .control-description');
+            if (descriptionElement) {
+                descriptionElement.textContent = 'Besok pagi';
+            }
         } else {
             nextScheduleElement.textContent = nextSchedule.time;
+            
+            // Update description for today's schedule
+            const descriptionElement = document.querySelector('.control-item:nth-child(4) .control-description');
+            if (descriptionElement) {
+                const hoursUntil = Math.floor((nextSchedule.minutes - currentTime) / 60);
+                const minutesUntil = (nextSchedule.minutes - currentTime) % 60;
+                
+                if (hoursUntil > 0) {
+                    descriptionElement.textContent = `Dalam ${hoursUntil} jam ${minutesUntil} menit`;
+                } else {
+                    descriptionElement.textContent = `Dalam ${minutesUntil} menit`;
+                }
+            }
         }
+        
+        console.log('🕐 Soil manager next schedule updated:', nextSchedule ? nextSchedule.time : 'None', 'from schedules:', this.settings.scheduledIrrigations);
     }
 
     startIrrigation() {

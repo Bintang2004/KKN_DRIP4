@@ -87,6 +87,7 @@ window.onload = function() {
             setTimeout(() => {
                 window.soilMoistureManager.forceSyncScheduledIrrigations();
                 window.waterVolumeManager.updateNextScheduleDisplay();
+                window.soilMoistureManager.updateNextScheduleDisplay();
             }, 2000);
         }
     }, 1500);
@@ -95,6 +96,17 @@ window.onload = function() {
     
     // Update time every second
     setInterval(updateDateAndTime, 1000);
+    
+    // Update next schedule display every minute to keep it current
+    setInterval(() => {
+        if (window.waterVolumeManager) {
+            window.waterVolumeManager.updateNextScheduleDisplay();
+        }
+        if (window.soilMoistureManager) {
+            window.soilMoistureManager.updateNextScheduleDisplay();
+        }
+    }, 60000);
+    
     // Update metrics every 15 seconds to ensure synchronization
     setInterval(updateSoilMoistureMetrics, 15000);
 };
