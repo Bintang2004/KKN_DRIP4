@@ -65,15 +65,29 @@ window.onload = function() {
     setTimeout(() => {
         if (window.waterVolumeManager) {
             window.waterVolumeManager.updateDisplay();
+            window.waterVolumeManager.updateNextScheduleDisplay();
         }
         if (window.soilMoistureManager) {
             window.soilMoistureManager.updateDisplay();
+            window.soilMoistureManager.forceSyncScheduledIrrigations();
         } else {
             // If soil moisture manager not ready, initialize it
             if (typeof SoilMoistureManager !== 'undefined') {
                 window.soilMoistureManager = new SoilMoistureManager();
                 window.soilMoistureManager.updateDisplay();
+                window.soilMoistureManager.forceSyncScheduledIrrigations();
             }
+        }
+        
+        // Force sync between managers
+        if (window.waterVolumeManager && window.soilMoistureManager) {
+            window.waterVolumeManager.syncWithSoilManager();
+            
+            // Ensure schedules are properly synchronized
+            setTimeout(() => {
+                window.soilMoistureManager.forceSyncScheduledIrrigations();
+                window.waterVolumeManager.updateNextScheduleDisplay();
+            }, 2000);
         }
     }, 1500);
     

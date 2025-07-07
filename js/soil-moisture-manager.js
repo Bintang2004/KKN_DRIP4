@@ -243,8 +243,8 @@ class SoilMoistureManager {
         const now = new Date();
         const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
         
-        // Sync schedules with water volume manager first
-        this.syncScheduledIrrigations();
+        // Force sync schedules with water volume manager
+        this.forceSyncScheduledIrrigations();
         
         // Check if it's time for scheduled irrigation
         if (this.settings.scheduledIrrigations.includes(currentTime)) {
@@ -256,26 +256,89 @@ class SoilMoistureManager {
                 this.settings.lastIrrigationCheck = now;
                 this.saveSettings();
                 
-                // Check if water level is sufficient and auto irrigation is enabled
-                if (window.waterVolumeManager && 
-                    window.waterVolumeManager.settings.currentLevel >= window.waterVolumeManager.settings.irrigationVolume &&
-                    window.waterVolumeManager.settings.autoIrrigation) {
-                    
-                    // Check if soil moisture is low enough to warrant irrigation
-                    if (this.settings.currentMoisture < 35) {
-                        // Trigger irrigation through water volume manager to maintain sync
-                        window.waterVolumeManager.performIrrigation();
-                        this.showNotification(`🕐 Penyiraman terjadwal ${currentTime} dimulai - ${window.waterVolumeManager.settings.irrigationVolume}L`, 'success');
-                    } else {
-                        this.showNotification(`🕐 Penyiraman terjadwal ${currentTime} dilewati - tanah masih lembap (${this.settings.currentMoisture.toFixed(1)}%)`, 'info');
-                    }
-                } else {
-                    const reason = !window.waterVolumeManager ? 'sistem tidak tersedia' : 
-                                 window.waterVolumeManager.settings.currentLevel < window.waterVolumeManager.settings.irrigationVolume ? 'air tidak cukup' :
-                                 'auto irrigation dinonaktifkan';
-                    this.showNotification(`🕐 Penyiraman terjadwal ${currentTime} gagal - ${reason}`, 'error');
-                }
+                // Don't trigger here - let water volume manager handle it
+                // This prevents double triggering
+                console.log(`Scheduled irrigation time detected: ${currentTime}`);
             }
+        }
+    }
+
+    forceSyncScheduledIrrigations() {
+        // Force immediate sync with water volume manager settings
+        if (window.waterVolumeManager && window.waterVolumeManager.settings.schedules) {
+            const activeSchedules = window.waterVolumeManager.settings.schedules
+                .filter(schedule => schedule.enabled)
+                .map(schedule => schedule.time);
+            
+            // Only update if schedules have changed
+            const currentSchedulesStr = JSON.stringify(this.settings.scheduledIrrigations.sort());
+            const newSchedulesStr = JSON.stringify(activeSchedules.sort());
+            
+            if (currentSchedulesStr !== newSchedulesStr) {
+                this.settings.scheduledIrrigations = activeSchedules;
+                this.saveSettings();
+                console.log('✅ Soil moisture schedules synced with water manager:', activeSchedules);
+            }
+        }
+        
+        // Also sync with global irrigation settings
+        const irrigationSettings = localStorage.getItem('irrigationSettings');
+        if (irrigationSettings) {
+            try {
+                const parsed = JSON.parse(irrigationSettings);
+                if (parsed.waterLevel) {
+                    const globalSchedules = [
+                        ...(parsed.waterLevel.schedule1Enabled ? [parsed.waterLevel.schedule1] : []),
+                        ...(parsed.waterLevel.schedule2Enabled ? [parsed.waterLevel.schedule2] : [])
+                    ];
+                    
+                    const currentSchedulesStr = JSON.stringify(this.settings.scheduledIrrigations.sort());
+                    const globalSchedulesStr = JSON.stringify(globalSchedules.sort());
+                    
+                    if (currentSchedulesStr !== globalSchedulesStr) {
+                        this.settings.scheduledIrrigations = globalSchedules;
+                        this.saveSettings();
+                        console.log('✅ Soil moisture schedules synced with global settings:', globalSchedules);
+                    }
+                }
+            } catch (e) {
+                console.error('Error syncing with global settings:', e);
+            }
+        }
+        
+        // Update next schedule display in control panel
+        this.updateNextScheduleDisplay();
+    }
+    
+    updateNextScheduleDisplay() {
+        const nextScheduleElement = document.getElementById('next-schedule');
+        if (!nextScheduleElement) return;
+        
+        const now = new Date();
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        
+        // Get enabled schedules and convert to minutes
+        const enabledSchedules = this.settings.scheduledIrrigations
+            .map(timeString => {
+                const [hours, minutes] = timeString.split(':').map(Number);
+                return { time: timeString, minutes: hours * 60 + minutes };
+            })
+            .sort((a, b) => a.minutes - b.minutes);
+        
+        if (enabledSchedules.length === 0) {
+            nextScheduleElement.textContent = 'Tidak ada jadwal';
+            return;
+        }
+        
+        // Find next schedule
+        let nextSchedule = enabledSchedules.find(schedule => schedule.minutes > currentTime);
+        
+        // If no schedule today, use first schedule tomorrow
+        if (!nextSchedule) {
+            nextSchedule = enabledSchedules[0];
+            nextScheduleElement.textContent = `${nextSchedule.time} (besok)`;
+        } else {
+            nextScheduleElement.textContent = nextSchedule.time;
         }
     }
 
@@ -830,6 +893,9 @@ class SoilMoistureManager {
     updateSettings(newSettings) {
         this.settings = { ...this.settings, ...newSettings };
         
+        // Force immediate sync of schedules
+        this.forceSyncScheduledIrrigations();
+        
         // Validate numeric settings
         if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture)) {
             this.settings.currentMoisture = 45;
@@ -846,11 +912,13 @@ class SoilMoistureManager {
         // Update scheduled irrigation times
         if (newSettings.scheduledIrrigations) {
             this.settings.scheduledIrrigations = newSettings.scheduledIrrigations;
+            console.log('Soil moisture schedules updated:', this.settings.scheduledIrrigations);
         } else if (newSettings.schedules) {
             // Handle water volume manager schedule format
             this.settings.scheduledIrrigations = newSettings.schedules
                 .filter(schedule => schedule.enabled)
                 .map(schedule => schedule.time);
+            console.log('Soil moisture schedules updated from water manager:', this.settings.scheduledIrrigations);
         }
         
         this.saveSettings();

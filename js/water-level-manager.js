@@ -391,24 +391,16 @@ class WaterVolumeManager {
         // Perform irrigation
         this.showNotification(`🕐 Penyiraman terjadwal ${timeString} dimulai - ${this.settings.irrigationVolume}L`, 'success');
         this.performIrrigation();
+        
+        // Trigger soil moisture irrigation if available
+        if (window.soilMoistureManager) {
+            window.soilMoistureManager.startIrrigation();
+        }
+        
         return true;
     }
 
-    // Override original scheduleIrrigation to use enhanced method
-    scheduleIrrigation(timeString) {
-        const [hours, minutes] = timeString.split(':').map(Number);
-        
-        const scheduleCheck = setInterval(() => {
-            const now = new Date();
-            if (now.getHours() === hours && now.getMinutes() === minutes && now.getSeconds() === 0) {
-                this.performIrrigation();
-            }
-        }, 1000);
-        
-        this.scheduledIntervals.push(scheduleCheck);
-    }
-
-    startCountdown() {
+    // Enhanced scheduled irrigation method with comprehensive checks
         // Update countdown every minute
         this.countdownInterval = setInterval(() => {
             this.updateCountdownDisplay();
@@ -429,12 +421,18 @@ class WaterVolumeManager {
         this.saveSettings();
         this.scheduleIrrigations();
         
-        // Force sync with soil moisture manager immediately
         // Sync with soil moisture manager
         this.syncWithSoilManager();
         
         // Update next schedule display
         this.updateNextScheduleDisplay();
+        
+        // Force immediate schedule sync with soil moisture manager
+        setTimeout(() => {
+            if (window.soilMoistureManager) {
+                window.soilMoistureManager.forceSyncScheduledIrrigations();
+            }
+        }, 100);
     }
 
     updateNextScheduleDisplay() {

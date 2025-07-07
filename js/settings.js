@@ -243,6 +243,13 @@ function resetSettings() {
                     { time: '16:00', enabled: true }
                 ]
             });
+            
+            // Force immediate schedule sync
+            setTimeout(() => {
+                if (window.soilMoistureManager) {
+                    window.soilMoistureManager.forceSyncScheduledIrrigations();
+                }
+            }, 100);
         }
     }
         // Update soil moisture manager if available
@@ -256,6 +263,17 @@ function resetSettings() {
             });
         }
         
+        // Force sync between all managers after reset
+        setTimeout(() => {
+            if (window.waterVolumeManager && window.soilMoistureManager) {
+                window.waterVolumeManager.syncWithSoilManager();
+                window.soilMoistureManager.forceSyncScheduledIrrigations();
+                
+                // Ensure schedules are properly applied
+                window.waterVolumeManager.scheduleIrrigations();
+            }
+        }, 500);
+        
         // Sync irrigation schedules between both managers
         if (window.waterVolumeManager && window.soilMoistureManager) {
             const activeSchedules = [
@@ -265,8 +283,19 @@ function resetSettings() {
             
             window.soilMoistureManager.updateSettings({
                 scheduledIrrigations: activeSchedules,
-                irrigationDuration: duration
+                irrigationDuration: duration,
+                forceSync: true
             });
+            
+            // Double-check sync after a short delay
+            setTimeout(() => {
+                window.soilMoistureManager.forceSyncScheduledIrrigations();
+                
+                // Verify schedules are applied correctly
+                console.log('🔄 Final schedule verification:');
+                console.log('Water Manager Schedules:', window.waterVolumeManager.settings.schedules);
+                console.log('Soil Manager Schedules:', window.soilMoistureManager.settings.scheduledIrrigations);
+            }, 200);
         }
         
 }
