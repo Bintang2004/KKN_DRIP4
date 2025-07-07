@@ -665,6 +665,11 @@ class WeatherAPI {
         weatherStatus.style.borderColor = accuracyColor[this.currentWeather.accuracy] || '#6b7280';
     }
 
+    updateFallbackStatus() {
+        // Update the weather status indicator when fallback or other weather processing occurs
+        this.updateWeatherStatusIndicator();
+    }
+
     getSourceIcon() {
         switch (this.currentWeather.source) {
             case 'OpenWeatherMap':
