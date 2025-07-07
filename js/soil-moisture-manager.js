@@ -288,10 +288,15 @@ class SoilMoistureManager {
     }
 
     startMoistureSimulation() {
-        // Update moisture every 30 seconds for smooth transitions
+        // Update moisture every 15 seconds for better synchronization
         this.moistureInterval = setInterval(() => {
             this.updateMoisture();
-        }, 30000);
+        }, 15000);
+        
+        // Also update display every 5 seconds to ensure UI sync
+        this.displayInterval = setInterval(() => {
+            this.updateDisplay();
+        }, 5000);
     }
 
     updateWeatherButtons() {
@@ -313,13 +318,15 @@ class SoilMoistureManager {
         const lastUpdate = this.settings.lastUpdate ? new Date(this.settings.lastUpdate) : new Date(now.getTime() - 30000);
         const timeDiff = (now - lastUpdate) / 1000 / 60; // minutes
         
-        // Prevent excessive time differences (max 1 hour)
-        const actualTimeDiff = Math.min(timeDiff, 60);
+        // Prevent excessive time differences (max 30 minutes for more realistic updates)
+        const actualTimeDiff = Math.min(timeDiff, 30);
         
         // Ensure currentMoisture is valid before calculations
         if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture)) {
             this.settings.currentMoisture = 45;
         }
+        
+        let moistureChanged = false;
         
         if (this.settings.isIrrigating) {
             // Increase moisture during irrigation
@@ -329,8 +336,9 @@ class SoilMoistureManager {
                 // Gradual increase based on calculated rate
                 const increaseRate = typeof this.settings.moistureIncreaseRate === 'number' && !isNaN(this.settings.moistureIncreaseRate) ? this.settings.moistureIncreaseRate : 2.85;
                 const increaseAmount = increaseRate * actualTimeDiff;
-                this.settings.currentMoisture = Math.min(100, this.settings.currentMoisture + increaseAmount);
+                const oldMoisture = this.settings.currentMoisture;
                 this.settings.currentMoisture = Math.min(100, this.settings.currentMoisture);
+                moistureChanged = oldMoisture !== this.settings.currentMoisture;
             }
         } else if (this.settings.weather !== 'hujan') {
             // Decrease moisture based on weather (evaporation)
@@ -350,24 +358,37 @@ class SoilMoistureManager {
             
             // Calculate decrease based on time passed
             const decreaseAmount = (decreaseRate * actualTimeDiff) / interval;
-            this.settings.currentMoisture = Math.max(0, this.settings.currentMoisture - decreaseAmount);
+            const oldMoisture = this.settings.currentMoisture;
             this.settings.currentMoisture = Math.max(0, this.settings.currentMoisture);
+            moistureChanged = oldMoisture !== this.settings.currentMoisture;
         }
         
         // Ensure final value is valid
         if (typeof this.settings.currentMoisture !== 'number' || isNaN(this.settings.currentMoisture)) {
             this.settings.currentMoisture = 45;
+            moistureChanged = true;
         }
         
         // Clamp values to valid range
+        const oldMoisture = this.settings.currentMoisture;
         this.settings.currentMoisture = Math.max(0, Math.min(100, this.settings.currentMoisture));
+        if (oldMoisture !== this.settings.currentMoisture) moistureChanged = true;
         
         this.settings.lastUpdate = now;
         this.saveSettings();
-        this.updateDisplay();
         
-        // Log moisture changes periodically
-        if (Math.random() < 0.1) { // 10% chance to log each update
+        // Only update display if moisture actually changed
+        if (moistureChanged) {
+            this.updateDisplay();
+            
+            // Log significant moisture changes
+            if (Math.abs(oldMoisture - this.settings.currentMoisture) > 0.5) {
+                this.logMoisture('significant_change');
+            }
+        }
+        
+        // Log moisture changes less frequently
+        if (Math.random() < 0.05) { // 5% chance to log each update
             this.logMoisture('periodic_update');
         }
     }
@@ -416,6 +437,9 @@ class SoilMoistureManager {
             statusBadge.className = `status-badge ${range.status}`;
         }
         
+        // Update weather display to match current weather
+        this.updateWeatherDisplay();
+        
         // Update irrigation status if currently irrigating
         if (this.settings.isIrrigating) {
             const irrigationCard = document.querySelector('.metric-card:nth-child(3)');
@@ -441,6 +465,32 @@ class SoilMoistureManager {
                     statusBadge.className = 'status-badge running';
                 }
                 if (metricValue) metricValue.textContent = 'Ready';
+            }
+        }
+        
+        // Force chart update if available
+        if (window.charts && window.charts['chart2']) {
+            this.updateChart();
+        }
+    }
+
+    updateChart() {
+        // Update chart with current data
+        if (window.charts && window.charts['chart2']) {
+            const currentData = this.getChartData('daily');
+            const chart = window.charts['chart2'];
+            
+            // Update chart data
+            chart.data.datasets[0].data = currentData;
+            chart.update('none'); // Update without animation for smooth real-time updates
+            
+            // Update average display
+            if (currentData.length > 0) {
+                const average = currentData.reduce((sum, point) => sum + point.y, 0) / currentData.length;
+                const averageElement = document.getElementById('average2-value');
+                if (averageElement) {
+                    averageElement.textContent = `${average.toFixed(1)} %`;
+                }
             }
         }
     }
@@ -503,7 +553,7 @@ class SoilMoistureManager {
         const intervalMinutes = period === 'daily' ? 30 : period === 'weekly' ? 180 : 720; // 30min, 3h, 12h
         
         let currentTime = new Date(startDate);
-        let moisture = 20 + Math.random() * 15; // Start with 20-35%
+        let moisture = Math.max(15, this.settings.currentMoisture - 20); // Start near current value
         
         while (currentTime <= endDate) {
             const hour = currentTime.getHours();
@@ -548,6 +598,11 @@ class SoilMoistureManager {
             });
             
             currentTime = new Date(currentTime.getTime() + intervalMinutes * 60 * 1000);
+        }
+        
+        // Ensure the last data point matches current moisture
+        if (data.length > 0) {
+            data[data.length - 1].y = this.settings.currentMoisture;
         }
         
         return data;

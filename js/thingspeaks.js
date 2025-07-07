@@ -38,6 +38,11 @@ function updateSoilMoistureMetrics() {
     if (window.soilMoistureManager) {
         // Force update display to ensure synchronization
         window.soilMoistureManager.updateDisplay();
+        
+        // Also update the chart if it exists
+        if (window.charts && window.charts['chart2']) {
+            window.soilMoistureManager.updateChart();
+        }
     }
     
     // Update next schedule
@@ -175,6 +180,10 @@ function loadData(period) {
                 charts[field.id] = createChart(ctx, data, field.color, labels[period].unit, labels[period].format, field.title);
                 updateAverage(field.averageId, data, field.unit);
                 document.getElementById(field.id).parentElement.querySelector('.chart-message').textContent = '';
+                
+                // Store reference for real-time updates
+                window.charts = window.charts || {};
+                window.charts[field.id] = charts[field.id];
             }
         } else if (period === 'monthly') {
             getMonthlyAverages(field.fieldNumber, function(error, data) {
