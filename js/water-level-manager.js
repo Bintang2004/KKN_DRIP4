@@ -374,3 +374,6 @@ let waterVolumeManager;
 document.addEventListener('DOMContentLoaded', function() {
     waterVolumeManager = new WaterVolumeManager();
 });
+
+// Export for global access
+window.waterVolumeManager = waterVolumeManager;
