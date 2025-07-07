@@ -1,16 +1,12 @@
-// Daily
+// Active button management
 function setActive(button) {
-    // Remove 'active' class from all buttons
-    var buttons = document.querySelectorAll('.toggle-button');
-    buttons.forEach(function(btn) {
+    document.querySelectorAll('.time-button').forEach(btn => {
         btn.classList.remove('active');
     });
-  
-    // Add 'active' class to the clicked button
     button.classList.add('active');
 }
 
-// Tanggal dan Waktu
+// Date and time update
 function updateDateAndTime() {
     const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
     const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -21,7 +17,6 @@ function updateDateAndTime() {
     const monthName = months[now.getMonth()];
     const year = now.getFullYear();
     
-    // Format waktu
     const hours = now.getHours().toString().padStart(2, '0');
     const minutes = now.getMinutes().toString().padStart(2, '0');
     const seconds = now.getSeconds().toString().padStart(2, '0');
@@ -29,66 +24,43 @@ function updateDateAndTime() {
     const formattedDate = `${dayName}, ${day} ${monthName} ${year}`;
     const formattedTime = `${hours}:${minutes}:${seconds}`;
 
-    document.getElementById('hari').textContent = formattedDate;
-    document.getElementById('jam').textContent = formattedTime;
+    document.getElementById('current-time').textContent = `${formattedDate} - ${formattedTime}`;
 }
 
-// Update waktu setiap detik
-setInterval(updateDateAndTime, 1000);
-
-// Update status sistem
-function updateSystemStatus() {
-    const waterStatus = document.getElementById('water-status');
-    const pumpStatus = document.getElementById('pump-status');
-    const irrigationStatus = document.getElementById('irrigation-status');
+// Update system status and metrics
+function updateSystemMetrics() {
+    // Simulate real-time data updates
+    const waterLevel = (Math.random() * 50 + 10).toFixed(1);
+    const soilHumidity = (Math.random() * 40 + 60).toFixed(1);
     
-    // Simulasi status (dalam implementasi nyata, ini akan mengambil data dari sensor)
-    const isWaterAvailable = Math.random() > 0.1; // 90% kemungkinan air tersedia
-    const isPumpActive = Math.random() > 0.3; // 70% kemungkinan pompa aktif
-    const isIrrigationActive = Math.random() > 0.5; // 50% kemungkinan irigasi aktif
+    document.getElementById('water-level-value').textContent = `${waterLevel} cm`;
+    document.getElementById('soil-humidity-value').textContent = `${soilHumidity}%`;
     
-    waterStatus.className = isWaterAvailable ? 'status-indicator' : 'status-indicator offline';
-    pumpStatus.className = isPumpActive ? 'status-indicator' : 'status-indicator offline';
-    irrigationStatus.className = isIrrigationActive ? 'status-indicator' : 'status-indicator offline';
-}
-
-// Update info cepat
-function updateQuickInfo() {
-    const lastIrrigation = document.getElementById('last-irrigation');
-    const nextSchedule = document.getElementById('next-schedule');
-    const waterUsage = document.getElementById('water-usage');
-    
-    // Simulasi data (dalam implementasi nyata, ini akan mengambil data dari database)
+    // Update next schedule
     const now = new Date();
-    const lastIrrigationTime = new Date(now.getTime() - (Math.random() * 4 * 60 * 60 * 1000)); // 0-4 jam yang lalu
-    const nextScheduleTime = new Date(now.getTime() + (Math.random() * 8 * 60 * 60 * 1000)); // 0-8 jam ke depan
-    const todayUsage = Math.floor(Math.random() * 500) + 100; // 100-600 liter
-    
-    lastIrrigation.textContent = lastIrrigationTime.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'});
-    nextSchedule.textContent = nextScheduleTime.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'});
-    waterUsage.textContent = `${todayUsage} L`;
+    const nextSchedule = new Date(now.getTime() + (Math.random() * 8 * 60 * 60 * 1000));
+    document.getElementById('next-schedule').textContent = nextSchedule.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'});
 }
 
-// Memanggil fungsi saat halaman dimuat
+// Initialize on page load
 window.onload = function() {
     updateDateAndTime();
-    updateSystemStatus();
-    updateQuickInfo();
+    updateSystemMetrics();
     loadData('daily');
     
-    // Update status setiap 30 detik
-    setInterval(updateSystemStatus, 30000);
-    setInterval(updateQuickInfo, 60000);
+    // Update time every second
+    setInterval(updateDateAndTime, 1000);
+    // Update metrics every 30 seconds
+    setInterval(updateSystemMetrics, 30000);
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Load daily data by default on page load
     loadData('daily');
 });
 
-let charts = {}; // Menyimpan referensi grafik
+let charts = {};
 
-// Fungsi untuk mendapatkan rata-rata bulanan
+// Monthly averages function
 function getMonthlyAverages(fieldNumber, callback) {
     const apiKey = 'XP0SNX40V07E6PNK';
     const channelId = '2983766';
@@ -141,8 +113,8 @@ function loadData(period) {
     };
 
     const fields = [
-        { id: 'chart1', fieldNumber: 1, color: '#32CD32', averageContainer: 'average1', title: 'Water Level' },
-        { id: 'chart2', fieldNumber: 2, color: '#228B22', averageContainer: 'average2', title: 'Soil Humidity' },
+        { id: 'chart1', fieldNumber: 1, color: '#3b82f6', averageId: 'average1-value', title: 'Water Level', unit: 'cm' },
+        { id: 'chart2', fieldNumber: 2, color: '#10b981', averageId: 'average2-value', title: 'Soil Humidity', unit: '%' },
     ];
 
     fields.forEach(field => {
@@ -150,25 +122,23 @@ function loadData(period) {
             getMonthlyAverages(field.fieldNumber, function(data) {
                 const ctx = document.getElementById(field.id).getContext('2d');
                 if (charts[field.id]) {
-                    charts[field.id].destroy(); // Hancurkan grafik lama jika ada
+                    charts[field.id].destroy();
                 }
                 charts[field.id] = createChart(ctx, data, field.color, labels[period].unit, labels[period].format, field.title);
-                updateAverage(field.averageContainer, data, field.title);
+                updateAverage(field.averageId, data, field.unit);
             });
         } else {
             getData(field.fieldNumber, period, resultsCount[period], function(data) {
                 const ctx = document.getElementById(field.id).getContext('2d');
                 if (charts[field.id]) {
-                    charts[field.id].destroy(); // Hancurkan grafik lama jika ada
+                    charts[field.id].destroy();
                 }
                 if (data === null) {
-                    // Jika tidak ada data, tampilkan pesan sistem mati
                     document.getElementById(field.id).parentElement.querySelector('.chart-message').textContent = 'Sistem Offline: Tidak ada data untuk periode ini';
                 } else {
-                    // Tampilkan grafik jika ada data
                     charts[field.id] = createChart(ctx, data, field.color, labels[period].unit, labels[period].format, field.title);
-                    updateAverage(field.averageContainer, data, field.title);
-                    document.getElementById(field.id).parentElement.querySelector('.chart-message').textContent = ''; // Hapus pesan jika ada data
+                    updateAverage(field.averageId, data, field.unit);
+                    document.getElementById(field.id).parentElement.querySelector('.chart-message').textContent = '';
                 }
             });
         }
@@ -186,12 +156,11 @@ function getData(fieldNumber, period, resultsCount, callback) {
             const values = [];
             const dailyData = {};
 
-            // Mengumpulkan data per hari
             data.feeds.forEach(feed => {
                 if (feed[`field${fieldNumber}`] !== null) {
                     const date = new Date(feed.created_at);
-                    const day = date.toISOString().split('T')[0]; // Format YYYY-MM-DD
-                    const time = date.toISOString().split('T')[1]; // Format HH:MM:SS
+                    const day = date.toISOString().split('T')[0];
+                    const time = date.toISOString().split('T')[1];
                     const value = parseFloat(feed[`field${fieldNumber}`]);
 
                     if (!dailyData[day]) {
@@ -202,7 +171,6 @@ function getData(fieldNumber, period, resultsCount, callback) {
             });
 
             if (period === 'weekly') {
-                // Menghitung rata-rata harian untuk weekly
                 Object.keys(dailyData).forEach(day => {
                     const sum = dailyData[day].reduce((acc, item) => acc + item.value, 0);
                     const avg = sum / dailyData[day].length;
@@ -212,11 +180,10 @@ function getData(fieldNumber, period, resultsCount, callback) {
                     });
                 });
             } else if (period === 'monthly') {
-                // Mengelompokkan per minggu untuk monthly
                 const weeklyData = {};
                 Object.keys(dailyData).forEach(day => {
                     const date = new Date(day);
-                    const weekYear = `${date.getFullYear()}-W${getWeekNumber(date)}`; // Identifikasi minggu dalam tahun
+                    const weekYear = `${date.getFullYear()}-W${getWeekNumber(date)}`;
 
                     if (!weeklyData[weekYear]) {
                         weeklyData[weekYear] = [];
@@ -228,23 +195,22 @@ function getData(fieldNumber, period, resultsCount, callback) {
                     const sum = weeklyData[weekYear].reduce((acc, v) => acc + v, 0);
                     const avg = sum / weeklyData[weekYear].length;
                     values.push({
-                        x: new Date(weekYearToDate(weekYear)), // Konversi ke tanggal pertama dalam minggu tersebut
+                        x: new Date(weekYearToDate(weekYear)),
                         y: avg
                     });
                 });
             } else {
-                // Jika period adalah daily, ambil data hari ini dengan waktu
                 const today = new Date().toISOString().split('T')[0];
                 if (dailyData[today]) {
                     values.push(...dailyData[today].map(item => ({
-                        x: new Date(`${today}T${item.time}`), // Gabungkan tanggal dan waktu
+                        x: new Date(`${today}T${item.time}`),
                         y: item.value
                     })));
                 }
             }
 
             if (values.length === 0 && period === 'daily') {
-                callback(null); // Tidak ada data untuk hari ini
+                callback(null);
             } else {
                 callback(values);
             }
@@ -279,8 +245,8 @@ function calculateAverage(data) {
 
 function createChart(ctx, data, borderColor, unit, format, title) {
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, borderColor + '40');
-    gradient.addColorStop(1, borderColor + '10');
+    gradient.addColorStop(0, borderColor + '20');
+    gradient.addColorStop(1, borderColor + '05');
 
     return new Chart(ctx, {
         type: 'line',
@@ -307,12 +273,12 @@ function createChart(ctx, data, borderColor, unit, format, title) {
                     display: false
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(46, 139, 87, 0.9)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     titleColor: '#ffffff',
                     bodyColor: '#ffffff',
                     borderColor: borderColor,
                     borderWidth: 1,
-                    cornerRadius: 10,
+                    cornerRadius: 8,
                     displayColors: false,
                 }
             },
@@ -328,20 +294,11 @@ function createChart(ctx, data, borderColor, unit, format, title) {
                             month: 'MMM yyyy'
                         }
                     },
-                    title: {
-                        display: true,
-                        text: 'Waktu',
-                        color: '#2E8B57',
-                        font: {
-                            size: 14,
-                            weight: 'bold'
-                        }
-                    },
                     grid: {
-                        color: 'rgba(46, 139, 87, 0.1)',
+                        color: 'rgba(0, 0, 0, 0.1)',
                     },
                     ticks: {
-                        color: '#2E8B57',
+                        color: '#6b7280',
                         font: {
                             size: 12
                         }
@@ -349,20 +306,11 @@ function createChart(ctx, data, borderColor, unit, format, title) {
                 },
                 y: {
                     beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: title === 'Water Level' ? 'Level (cm)' : 'Kelembaban (%)',
-                        color: '#2E8B57',
-                        font: {
-                            size: 14,
-                            weight: 'bold'
-                        }
-                    },
                     grid: {
-                        color: 'rgba(46, 139, 87, 0.1)',
+                        color: 'rgba(0, 0, 0, 0.1)',
                     },
                     ticks: {
-                        color: '#2E8B57',
+                        color: '#6b7280',
                         font: {
                             size: 12
                         }
@@ -377,44 +325,10 @@ function createChart(ctx, data, borderColor, unit, format, title) {
     });
 }
 
-function updateAverage(containerId, data, title) {
+function updateAverage(elementId, data, unit) {
     const average = calculateAverage(data);
-    const container = document.getElementById(containerId);
-    const valueElement = document.createElement('span');
-    valueElement.className = 'average-value';
-    
-    const unit = title === 'Water Level' ? 'cm' : '%';
-    valueElement.textContent = `${average} ${unit}`;
-    
-    container.innerHTML = '<span class="average-label">Rerata: </span>';
-    container.appendChild(valueElement);
-
-    // Logika warna berdasarkan jenis parameter
-    if (title === 'Water Level') {
-        // Water Level: semakin tinggi semakin baik
-        if (average >= 80) {
-            container.className = 'average-container average-green';
-        } else if (average >= 60) {
-            container.className = 'average-container average-yellow';
-        } else if (average >= 40) {
-            container.className = 'average-container average-orange';
-        } else if (average >= 20) {
-            container.className = 'average-container average-red';
-        } else {
-            container.className = 'average-container average-dark';
-        }
-    } else {
-        // Soil Humidity: 40-70% optimal
-        if (average >= 40 && average <= 70) {
-            container.className = 'average-container average-green';
-        } else if ((average >= 30 && average < 40) || (average > 70 && average <= 80)) {
-            container.className = 'average-container average-yellow';
-        } else if ((average >= 20 && average < 30) || (average > 80 && average <= 90)) {
-            container.className = 'average-container average-orange';
-        } else if ((average >= 10 && average < 20) || (average > 90)) {
-            container.className = 'average-container average-red';
-        } else {
-            container.className = 'average-container average-dark';
-        }
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = `${average} ${unit}`;
     }
 }

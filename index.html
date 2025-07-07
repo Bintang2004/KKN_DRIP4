@@ -1,142 +1,247 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>Drip Irrigation Monitoring System - KKN-PPM UGM 2025</title>
-    <!-- Custom CSS -->
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Drip Irrigation System - KKN-PPM UGM 2025</title>
     <link rel="stylesheet" href="css/styles.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Memuat jQuery dari CDN -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Memuat Chart.js dan adapter waktu -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@latest"></script>
-  </head>
-  <body>
-    <div class="grid-container">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo-icon">🌱</div>
+                <div class="header-title">
+                    <h1 class="main-title">Smart Drip Irrigation System</h1>
+                    <p class="subtitle">Kelurahan Tanah Jaya - Water Level & Soil Humidity Monitoring</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>System Online</span>
+                </div>
+                <div class="date-time">
+                    <div class="organization">KKN PPM UGM</div>
+                    <div class="current-time" id="current-time">Senin, 7 Juli 2025</div>
+                </div>
+                <img src="img/LOGO  KKN.png" alt="Logo KKN-PPM UGM" class="logo-kkn">
+            </div>
+        </header>
 
-      <!-- Header -->
-      <header class="header">
-        <div class="header-left">
-          <div class="judul">Drip Irrigation Monitoring System</div>
-          <div class="subtitle">KKN-PPM UGM 2025 - Kelurahan Tanah Jaya</div>
-          <div class="button-group">
-            <button class="toggle-button first active" onclick="loadData('daily');setActive(this)">Daily</button>
-            <button class="toggle-button middle" onclick="loadData('weekly');setActive(this)">Weekly</button>
-            <button class="toggle-button last" onclick="loadData('monthly');setActive(this)">Monthly</button>
-          </div>
+        <!-- Time Period Controls -->
+        <div class="time-controls">
+            <button class="time-button active" onclick="loadData('daily');setActive(this)">
+                📅 Daily
+            </button>
+            <button class="time-button" onclick="loadData('weekly');setActive(this)">
+                📊 Weekly
+            </button>
+            <button class="time-button" onclick="loadData('monthly');setActive(this)">
+                📈 Monthly
+            </button>
         </div>
-        <div class="header-right">
-          <div class="text">
-            <div class="nama">CITTA BULUKUMBA</div>
-            <div class="waktu">
-              <div class="hari" id="hari"></div>
-              <div class="jam" id="jam"></div>
+
+        <!-- Location Card -->
+        <div class="location-card">
+            <div class="location-info">
+                <div class="location-icon">📍</div>
+                <div class="location-details">
+                    <h3>Monitoring Location</h3>
+                    <p>Kelurahan Tanah Jaya, Kabupaten Bulukumba</p>
+                    <span class="zone-badge">Smart Agriculture Zone</span>
+                </div>
             </div>
-          </div>
-          <img class="gambar" src="img/LOGO  KKN.png" alt="Logo KKN-PPM UGM 2025">
+            <div class="environmental-data">
+                <div class="env-item">
+                    <span class="env-icon">🌡️</span>
+                    <span>28°C</span>
+                </div>
+                <div class="env-item">
+                    <span class="env-icon">💧</span>
+                    <span>65% RH</span>
+                </div>
+                <div class="env-item">
+                    <span class="env-icon">💨</span>
+                    <span>12 km/h</span>
+                </div>
+            </div>
         </div>
-      </header>
-      <!-- End Header -->
-    
-      <!-- Main -->
-      <main class="main-container">
-        <div class="charts">
-          <div class="charts-card">
-            <div class="chart-title-container">
-              <h2 class="chart-title">Water Level</h2>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-info">
+                        <div class="metric-icon water">💧</div>
+                        <div class="metric-details">
+                            <h4>Water Level</h4>
+                            <p>Reservoir depth monitoring</p>
+                        </div>
+                    </div>
+                    <span class="status-badge low">LOW</span>
+                </div>
+                <div class="metric-value" id="water-level-value">13.0 cm</div>
+                <div class="metric-description">
+                    <div class="status-dot-small"></div>
+                    <span>Reservoir depth monitoring</span>
+                </div>
             </div>
-            <canvas id="chart1"></canvas>
-            <div class="chart-message" id="chart1-message"></div>
-            <div class="average-container" id="average1">
-              <span class="average-label">Rerata: </span>
-              <span class="average-value"></span>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-info">
+                        <div class="metric-icon soil">🌱</div>
+                        <div class="metric-details">
+                            <h4>Soil Humidity</h4>
+                            <p>Soil moisture content</p>
+                        </div>
+                    </div>
+                    <span class="status-badge wet">WET</span>
+                </div>
+                <div class="metric-value" id="soil-humidity-value">100.0%</div>
+                <div class="metric-description">
+                    <div class="status-dot-small"></div>
+                    <span>Soil moisture content</span>
+                </div>
             </div>
-          </div>
-          <div class="charts-card">
-            <div class="chart-title-container">
-              <h2 class="chart-title">Soil Humidity</h2>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-info">
+                        <div class="metric-icon irrigation">⚡</div>
+                        <div class="metric-details">
+                            <h4>Irrigation Status</h4>
+                            <p>Auto-irrigation enabled</p>
+                        </div>
+                    </div>
+                    <span class="status-badge running">RUNNING</span>
+                </div>
+                <div class="metric-value">Active</div>
+                <div class="metric-description">
+                    <div class="status-dot-small"></div>
+                    <span>Auto-irrigation enabled</span>
+                </div>
             </div>
-            <canvas id="chart2"></canvas>
-            <div class="chart-message" id="chart2-message"></div>
-            <div class="average-container" id="average2">
-              <span class="average-label">Rerata: </span>
-              <span class="average-value"></span>
-            </div>
-          </div>
-          <div class="charts-card status-card">
-            <div class="chart-title-container">
-              <h2 class="chart-title">System Status</h2>
-            </div>
-            <div class="status-content">
-              <div class="status-item">
-                <div class="status-indicator" id="water-status"></div>
-                <span>Water Supply</span>
-              </div>
-              <div class="status-item">
-                <div class="status-indicator" id="pump-status"></div>
-                <span>Pump System</span>
-              </div>
-              <div class="status-item">
-                <div class="status-indicator" id="irrigation-status"></div>
-                <span>Irrigation Active</span>
-              </div>
-            </div>
-          </div>
-          <div class="charts-card info-card">
-            <div class="chart-title-container">
-              <h2 class="chart-title">Quick Info</h2>
-            </div>
-            <div class="info-content">
-              <div class="info-item">
-                <div class="info-label">Last Irrigation:</div>
-                <div class="info-value" id="last-irrigation">--:--</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Next Schedule:</div>
-                <div class="info-value" id="next-schedule">--:--</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Water Usage Today:</div>
-                <div class="info-value" id="water-usage">-- L</div>
-              </div>
-            </div>
-          </div>
         </div>
-        <div class="footer">
-          <div class="footer-left">
-            <div class="dropdown">
-              <label for="location">Pilih Area:</label>
-              <select name="location" id="location">
-                <option value="area1">Area Tanaman A</option>
-                <option value="area2">Area Tanaman B</option>
-                <option value="area3">Area Tanaman C</option>
-                <option value="area4">Area Greenhouse 1</option>
-                <option value="area5">Area Greenhouse 2</option>
-                <option value="area6">Area Nursery</option>
-                <option value="area7">Area Kompos</option>
-              </select>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        <div class="chart-icon water">💧</div>
+                        <div>
+                            <h3>Water Level Monitoring</h3>
+                            <p>Real-time reservoir water level measurements</p>
+                        </div>
+                    </div>
+                    <div class="chart-actions">
+                        <button class="chart-action">⬇️</button>
+                        <button class="chart-action">⛶</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart1"></canvas>
+                    <div class="chart-message" id="chart1-message"></div>
+                </div>
+                <div class="chart-footer">
+                    <div class="chart-average">
+                        📊 Average: <span class="average-value" id="average1-value">-- cm</span>
+                    </div>
+                    <div class="sensor-status">
+                        <div class="status-dot-small"></div>
+                        <span>Sensor Active</span>
+                    </div>
+                </div>
             </div>
-          </div>
-        
-          <div class="footer-center">
-            <p>&copy; 2025 KKN-PPM UGM - Citta Bulukumba. All rights reserved.</p>
-          </div>
-        
-          <div class="footer-right">
-            <button id="download-report" class="toggle-button">Download CSV</button>
-          </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        <div class="chart-icon soil">🌱</div>
+                        <div>
+                            <h3>Soil Humidity Monitoring</h3>
+                            <p>Real-time soil moisture measurements</p>
+                        </div>
+                    </div>
+                    <div class="chart-actions">
+                        <button class="chart-action">⬇️</button>
+                        <button class="chart-action">⛶</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart2"></canvas>
+                    <div class="chart-message" id="chart2-message"></div>
+                </div>
+                <div class="chart-footer">
+                    <div class="chart-average">
+                        📊 Average: <span class="average-value" id="average2-value">-- %</span>
+                    </div>
+                    <div class="sensor-status">
+                        <div class="status-dot-small"></div>
+                        <span>Sensor Active</span>
+                    </div>
+                </div>
+            </div>
         </div>
-      </main>
-      <!-- End Main -->
-    
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="control-header">
+                <div class="control-title">
+                    <div class="control-icon">🌊</div>
+                    <h3>Irrigation Control Panel</h3>
+                </div>
+                <span class="mode-badge">Automatic</span>
+            </div>
+            <div class="control-grid">
+                <div class="control-item">
+                    <h4>Water Level Threshold</h4>
+                    <div class="control-value">15 cm</div>
+                    <p class="control-description">Minimum level for irrigation</p>
+                </div>
+                <div class="control-item">
+                    <h4>Soil Humidity Target</h4>
+                    <div class="control-value">60-80%</div>
+                    <p class="control-description">Optimal moisture range</p>
+                </div>
+                <div class="control-item">
+                    <h4>Irrigation Duration</h4>
+                    <div class="control-value">15 min</div>
+                    <p class="control-description">Per irrigation cycle</p>
+                </div>
+                <div class="control-item">
+                    <h4>Next Scheduled</h4>
+                    <div class="control-value" id="next-schedule">06:00</div>
+                    <p class="control-description">Tomorrow morning</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-left">
+                <div class="footer-icon">🎓</div>
+                <div class="footer-text">
+                    <div>KKN PPM UGM 2025</div>
+                    <div style="font-size: 12px; opacity: 0.8;">Smart Agriculture Initiative</div>
+                </div>
+            </div>
+            <div class="footer-center">
+                © 2025 Citta Bulukumba KKN PPM UGM, Kelurahan Tanah Jaya.
+            </div>
+            <button class="export-button" id="download-report">
+                📊 Export Irrigation Report
+            </button>
+        </footer>
     </div>
-    
-    <!-- Scripts -->
-    <!-- Custom JS -->
+
     <script src="js/thingspeaks.js"></script>
     <script src="js/download.js"></script>
-  </body>
+</body>
 </html>
