@@ -123,7 +123,9 @@ class SoilMoistureManager {
     createWeatherControl() {
         // Add weather control to the soil moisture card
         const soilCard = document.querySelector('.metric-card:nth-child(2)');
-        if (soilCard && !document.getElementById('weather-control')) {
+        const existingControl = document.getElementById('weather-control');
+        
+        if (soilCard && !existingControl) {
             const weatherControl = document.createElement('div');
             weatherControl.id = 'weather-control';
             weatherControl.className = 'weather-control';
@@ -139,7 +141,11 @@ class SoilMoistureManager {
                 </div>
             `;
             
+            // Insert weather control at the end (after empty moisture button)
             soilCard.appendChild(weatherControl);
+        } else if (existingControl) {
+            // If control exists, move it to the end
+            soilCard.appendChild(existingControl);
         }
     }
 
