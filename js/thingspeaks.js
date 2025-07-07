@@ -67,7 +67,12 @@ function getMonthlyAverages(fieldNumber, callback) {
     const url = `https://api.thingspeak.com/channels/${channelId}/fields/${fieldNumber}.json?api_key=${apiKey}&results=720`;
     
     fetch(url)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
             const monthlyData = {};
 
@@ -94,9 +99,12 @@ function getMonthlyAverages(fieldNumber, callback) {
                 });
             }
 
-            callback(averages);
+            callback(null, averages);
         })
-        .catch(error => console.error('Error fetching monthly data:', error));
+        .catch(error => {
+            console.error('Error fetching monthly data:', error);
+            callback(error, null);
+        });
 }
 
 function loadData(period) {
@@ -119,23 +127,33 @@ function loadData(period) {
 
     fields.forEach(field => {
         if (period === 'monthly') {
-            getMonthlyAverages(field.fieldNumber, function(data) {
-                const ctx = document.getElementById(field.id).getContext('2d');
-                if (charts[field.id]) {
-                    charts[field.id].destroy();
+            getMonthlyAverages(field.fieldNumber, function(error, data) {
+                if (error) {
+                    document.getElementById(field.id).parentElement.querySelector('.chart-message').textContent = `Gagal mengambil data: ${error.message}. Periksa koneksi internet atau coba lagi nanti.`;
+                    updateAverage(field.averageId, null, field.unit);
+                } else {
+                    const ctx = document.getElementById(field.id).getContext('2d');
+                    if (charts[field.id]) {
+                        charts[field.id].destroy();
+                    }
+                    charts[field.id] = createChart(ctx, data, field.color, labels[period].unit, labels[period].format, field.title);
+                    updateAverage(field.averageId, data, field.unit);
+                    document.getElementById(field.id).parentElement.querySelector('.chart-message').textContent = '';
                 }
-                charts[field.id] = createChart(ctx, data, field.color, labels[period].unit, labels[period].format, field.title);
-                updateAverage(field.averageId, data, field.unit);
             });
         } else {
-            getData(field.fieldNumber, period, resultsCount[period], function(data) {
-                const ctx = document.getElementById(field.id).getContext('2d');
-                if (charts[field.id]) {
-                    charts[field.id].destroy();
-                }
-                if (data === null) {
+            getData(field.fieldNumber, period, resultsCount[period], function(error, data) {
+                if (error) {
+                    document.getElementById(field.id).parentElement.querySelector('.chart-message').textContent = `Gagal mengambil data: ${error.message}. Periksa koneksi internet atau coba lagi nanti.`;
+                    updateAverage(field.averageId, null, field.unit);
+                } else if (data === null) {
                     document.getElementById(field.id).parentElement.querySelector('.chart-message').textContent = 'Sistem Offline: Tidak ada data untuk periode ini';
+                    updateAverage(field.averageId, null, field.unit);
                 } else {
+                    const ctx = document.getElementById(field.id).getContext('2d');
+                    if (charts[field.id]) {
+                        charts[field.id].destroy();
+                    }
                     charts[field.id] = createChart(ctx, data, field.color, labels[period].unit, labels[period].format, field.title);
                     updateAverage(field.averageId, data, field.unit);
                     document.getElementById(field.id).parentElement.querySelector('.chart-message').textContent = '';
@@ -151,7 +169,12 @@ function getData(fieldNumber, period, resultsCount, callback) {
     const url = `https://api.thingspeak.com/channels/${channelId}/fields/${fieldNumber}.json?api_key=${apiKey}&results=${resultsCount}`;
     
     fetch(url)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
             const values = [];
             const dailyData = {};
@@ -210,12 +233,15 @@ function getData(fieldNumber, period, resultsCount, callback) {
             }
 
             if (values.length === 0 && period === 'daily') {
-                callback(null);
+                callback(null, null);
             } else {
-                callback(values);
+                callback(null, values);
             }
         })
-        .catch(error => console.error('Error fetching data:', error));
+        .catch(error => {
+            console.error('Error fetching data:', error);
+            callback(error, null);
+        });
 }
 
 function getWeekNumber(date) {
@@ -326,9 +352,13 @@ function createChart(ctx, data, borderColor, unit, format, title) {
 }
 
 function updateAverage(elementId, data, unit) {
-    const average = calculateAverage(data);
     const element = document.getElementById(elementId);
     if (element) {
-        element.textContent = `${average} ${unit}`;
+        if (data === null || data.length === 0) {
+            element.textContent = `-- ${unit}`;
+        } else {
+            const average = calculateAverage(data);
+            element.textContent = `${average} ${unit}`;
+        }
     }
 }
