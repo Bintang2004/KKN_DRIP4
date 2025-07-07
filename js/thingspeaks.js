@@ -61,6 +61,29 @@ function updateSoilMoistureMetrics() {
 window.onload = function() {
     updateDateAndTime();
     
+    // Initialize all systems in proper order
+    setTimeout(() => {
+        // First initialize weather
+        if (typeof WeatherAPI !== 'undefined' && !window.weatherAPI) {
+            window.weatherAPI = new WeatherAPI();
+        }
+        
+        // Then initialize water volume manager
+        if (typeof WaterVolumeManager !== 'undefined' && !window.waterVolumeManager) {
+            window.waterVolumeManager = new WaterVolumeManager();
+        }
+        
+        // Then initialize soil moisture manager
+        if (typeof SoilMoistureManager !== 'undefined' && !window.soilMoistureManager) {
+            window.soilMoistureManager = new SoilMoistureManager();
+        }
+        
+        // Load settings after all managers are initialized
+        if (window.irrigationSettings && window.irrigationSettings.loadSettings) {
+            window.irrigationSettings.loadSettings();
+        }
+    }, 500);
+    
     // Force update all displays after initialization
     setTimeout(() => {
         if (window.waterVolumeManager) {
@@ -70,13 +93,9 @@ window.onload = function() {
         if (window.soilMoistureManager) {
             window.soilMoistureManager.updateDisplay();
             window.soilMoistureManager.forceSyncScheduledIrrigations();
-        } else {
-            // If soil moisture manager not ready, initialize it
-            if (typeof SoilMoistureManager !== 'undefined') {
-                window.soilMoistureManager = new SoilMoistureManager();
-                window.soilMoistureManager.updateDisplay();
-                window.soilMoistureManager.forceSyncScheduledIrrigations();
-            }
+        }
+        if (window.weatherAPI) {
+            window.weatherAPI.updateEnvironmentalDisplay();
         }
         
         // Force sync between managers
@@ -88,9 +107,16 @@ window.onload = function() {
                 window.soilMoistureManager.forceSyncScheduledIrrigations();
                 window.waterVolumeManager.updateNextScheduleDisplay();
                 window.soilMoistureManager.updateNextScheduleDisplay();
+                
+                // Final integration check
+                console.log('🔄 System integration complete');
+                console.log('Water Manager:', window.waterVolumeManager ? 'Ready' : 'Not Ready');
+                console.log('Soil Manager:', window.soilMoistureManager ? 'Ready' : 'Not Ready');
+                console.log('Weather API:', window.weatherAPI ? 'Ready' : 'Not Ready');
+                console.log('Settings:', window.irrigationSettings ? 'Ready' : 'Not Ready');
             }, 2000);
         }
-    }, 1500);
+    }, 2000);
     
     loadData('daily');
     
@@ -107,8 +133,24 @@ window.onload = function() {
         }
     }, 60000);
     
-    // Update metrics every 15 seconds to ensure synchronization
-    setInterval(updateSoilMoistureMetrics, 15000);
+    // Update metrics every 30 seconds to ensure synchronization
+    setInterval(() => {
+        updateSoilMoistureMetrics();
+        
+        // Check system integration health
+        if (window.waterVolumeManager && window.soilMoistureManager) {
+            // Ensure schedules stay synchronized
+            const waterSchedules = window.waterVolumeManager.settings.schedules
+                .filter(s => s.enabled)
+                .map(s => s.time);
+            const soilSchedules = window.soilMoistureManager.settings.scheduledIrrigations;
+            
+            if (JSON.stringify(waterSchedules.sort()) !== JSON.stringify(soilSchedules.sort())) {
+                console.log('⚠️ Schedule desync detected, resyncing...');
+                window.soilMoistureManager.forceSyncScheduledIrrigations();
+            }
+        }
+    }, 30000);
 };
 
 document.addEventListener('DOMContentLoaded', function() {

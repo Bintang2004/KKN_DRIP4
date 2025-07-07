@@ -930,6 +930,16 @@ class SoilMoistureManager {
             }
         }
         
+        // Update moisture thresholds
+        if (newSettings.moistureThresholds) {
+            this.settings.moistureThresholds = newSettings.moistureThresholds;
+        }
+        
+        // Update auto irrigation setting
+        if (typeof newSettings.autoIrrigation === 'boolean') {
+            this.settings.autoIrrigation = newSettings.autoIrrigation;
+        }
+        
         // Update scheduled irrigation times
         if (newSettings.scheduledIrrigations) {
             this.settings.scheduledIrrigations = newSettings.scheduledIrrigations;
@@ -944,6 +954,11 @@ class SoilMoistureManager {
         
         this.saveSettings();
         this.updateDisplay();
+        
+        // Force update next schedule display
+        setTimeout(() => {
+            this.updateNextScheduleDisplay();
+        }, 100);
     }
 
     // Get current moisture status for other systems
@@ -981,7 +996,9 @@ class SoilMoistureManager {
 
     // Check if irrigation should be triggered based on moisture level
     shouldTriggerIrrigation() {
-        return this.settings.currentMoisture < 35 && !this.settings.isIrrigating;
+        // Use settings thresholds if available, otherwise default to 35%
+        const threshold = this.settings.moistureThresholds ? this.settings.moistureThresholds.min : 35;
+        return this.settings.currentMoisture < threshold && !this.settings.isIrrigating && this.settings.autoIrrigation !== false;
     }
 
     // Get irrigation effectiveness (how much moisture will increase)

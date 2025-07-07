@@ -178,6 +178,9 @@ function saveSettings() {
     // Save to localStorage
     saveSettingsToStorage();
     
+    // Comprehensive system integration
+    integrateAllSystems();
+    
     // Update water level manager if available
     if (window.waterVolumeManager) {
         window.waterVolumeManager.updateSettings({
@@ -199,6 +202,70 @@ function saveSettings() {
     
     // Close modal
     closeSettings();
+}
+
+// Comprehensive system integration function
+function integrateAllSystems() {
+    const activeSchedules = [
+        ...(currentSettings.waterLevel.schedule1Enabled ? [currentSettings.waterLevel.schedule1] : []),
+        ...(currentSettings.waterLevel.schedule2Enabled ? [currentSettings.waterLevel.schedule2] : [])
+    ];
+    
+    // Update water level manager
+    if (window.waterVolumeManager) {
+        window.waterVolumeManager.updateSettings({
+            tankCapacity: currentSettings.waterLevel.tankCapacity,
+            irrigationVolume: currentSettings.waterLevel.irrigationVolume,
+            lowLevelThreshold: currentSettings.waterLevel.lowLevelThreshold,
+            schedules: [
+                { time: currentSettings.waterLevel.schedule1, enabled: currentSettings.waterLevel.schedule1Enabled },
+                { time: currentSettings.waterLevel.schedule2, enabled: currentSettings.waterLevel.schedule2Enabled }
+            ],
+            autoIrrigation: currentSettings.alerts.autoIrrigation
+        });
+    }
+    
+    // Update soil moisture manager
+    if (window.soilMoistureManager) {
+        window.soilMoistureManager.updateSettings({
+            irrigationDuration: currentSettings.irrigation.duration,
+            scheduledIrrigations: activeSchedules,
+            moistureThresholds: {
+                min: currentSettings.soilMoisture.min,
+                max: currentSettings.soilMoisture.max,
+                optimal: currentSettings.soilMoisture.optimal
+            },
+            autoIrrigation: currentSettings.alerts.autoIrrigation,
+            forceSync: true
+        });
+    }
+    
+    // Update weather integration
+    if (window.weatherAPI) {
+        // Ensure weather affects soil moisture properly
+        const currentWeather = window.weatherAPI.getCurrentWeather();
+        if (window.soilMoistureManager) {
+            window.soilMoistureManager.setWeather(currentWeather.condition);
+        }
+    }
+    
+    // Force synchronization between all managers
+    setTimeout(() => {
+        if (window.waterVolumeManager && window.soilMoistureManager) {
+            // Sync schedules
+            window.waterVolumeManager.syncWithSoilManager();
+            window.soilMoistureManager.forceSyncScheduledIrrigations();
+            
+            // Update displays
+            window.waterVolumeManager.updateDisplay();
+            window.waterVolumeManager.updateNextScheduleDisplay();
+            window.soilMoistureManager.updateDisplay();
+            window.soilMoistureManager.updateNextScheduleDisplay();
+            
+            // Update control panel
+            updateControlPanelDisplay();
+        }
+    }, 300);
 }
 
 // Reset settings to default
@@ -232,89 +299,9 @@ function resetSettings() {
         updateSettingsUI();
         showNotification('Settings reset to default values', 'success');
         
-        // Update water level manager if available
-        if (window.waterVolumeManager) {
-            window.waterVolumeManager.updateSettings({
-                tankCapacity: 90,
-                irrigationVolume: 7,
-                lowLevelThreshold: 20,
-                schedules: [
-                    { time: '07:00', enabled: true },
-                    { time: '16:00', enabled: true }
-                ]
-            });
-            
-            // Force immediate schedule sync
-            setTimeout(() => {
-                if (window.soilMoistureManager) {
-                    window.soilMoistureManager.forceSyncScheduledIrrigations();
-                }
-            }, 100);
-        }
+        // Comprehensive system integration after reset
+        integrateAllSystems();
     }
-        // Update soil moisture manager if available
-        if (window.soilMoistureManager) {
-            window.soilMoistureManager.updateSettings({
-                irrigationDuration: duration,
-                scheduledIrrigations: [
-                    schedule1,
-                    schedule2
-                ]
-            });
-        }
-        
-        // Force sync between all managers after reset
-        setTimeout(() => {
-            if (window.waterVolumeManager && window.soilMoistureManager) {
-                window.waterVolumeManager.syncWithSoilManager();
-                window.soilMoistureManager.forceSyncScheduledIrrigations();
-                
-                // Ensure schedules are properly applied
-                window.waterVolumeManager.scheduleIrrigations();
-                
-                // Force immediate next schedule update
-                window.waterVolumeManager.updateNextScheduleDisplay();
-                window.soilMoistureManager.updateNextScheduleDisplay();
-            }
-        }, 200);
-        
-        // Sync irrigation schedules between both managers
-        if (window.waterVolumeManager && window.soilMoistureManager) {
-            const activeSchedules = [
-                ...(schedule1Enabled ? [schedule1] : []),
-                ...(schedule2Enabled ? [schedule2] : [])
-            ];
-            
-            window.soilMoistureManager.updateSettings({
-                scheduledIrrigations: activeSchedules,
-                irrigationDuration: duration,
-                forceSync: true
-            });
-            
-            // Double-check sync after a short delay
-            setTimeout(() => {
-                window.soilMoistureManager.forceSyncScheduledIrrigations();
-                
-                // Force immediate next schedule update
-                window.waterVolumeManager.updateNextScheduleDisplay();
-                window.soilMoistureManager.updateNextScheduleDisplay();
-                
-                // Verify schedules are applied correctly
-                console.log('🔄 Final schedule verification:');
-                console.log('Water Manager Schedules:', window.waterVolumeManager.settings.schedules);
-                console.log('Soil Manager Schedules:', window.soilMoistureManager.settings.scheduledIrrigations);
-            }, 100);
-        }
-        
-        // Force immediate next schedule display update
-        setTimeout(() => {
-            if (window.waterVolumeManager) {
-                window.waterVolumeManager.updateNextScheduleDisplay();
-            }
-            if (window.soilMoistureManager) {
-                window.soilMoistureManager.updateNextScheduleDisplay();
-            }
-        }, 100);
 }
 
 // Show notification

@@ -271,6 +271,21 @@ class WaterVolumeManager {
         const currentLevel = typeof this.settings.currentLevel === 'number' && !isNaN(this.settings.currentLevel) ? this.settings.currentLevel : 72;
         const irrigationVolume = typeof this.settings.irrigationVolume === 'number' && !isNaN(this.settings.irrigationVolume) ? this.settings.irrigationVolume : 7;
         
+        // Check if auto irrigation is enabled
+        if (!this.settings.autoIrrigation) {
+            this.showNotification('Auto irrigation dinonaktifkan - aktifkan di pengaturan', 'error');
+            return false;
+        }
+        
+        // Check soil moisture before irrigation
+        if (window.soilMoistureManager) {
+            const moistureStatus = window.soilMoistureManager.getCurrentMoistureStatus();
+            if (moistureStatus.moisture >= 35) {
+                this.showNotification(`Penyiraman dilewati - tanah masih lembap (${moistureStatus.moisture.toFixed(1)}%)`, 'info');
+                return false;
+            }
+        }
+        
         if (currentLevel >= irrigationVolume) {
             this.settings.currentLevel = Math.max(0, currentLevel - irrigationVolume);
             this.calculateEmptyTime();
@@ -281,10 +296,17 @@ class WaterVolumeManager {
             // Log irrigation
             this.logIrrigation();
             
+            // Trigger soil moisture irrigation
+            if (window.soilMoistureManager) {
+                window.soilMoistureManager.startIrrigation();
+            }
+            
             // Show notification
             this.showNotification(`Penyiraman dilakukan: ${irrigationVolume}L digunakan`, 'success');
+            return true;
         } else {
             this.showNotification('Air tidak cukup untuk penyiraman!', 'error');
+            return false;
         }
     }
 

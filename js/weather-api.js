@@ -193,7 +193,11 @@ class WeatherAPI {
             
             // Update soil moisture manager if available
             if (window.soilMoistureManager) {
-                window.soilMoistureManager.setWeather(condition);
+                // Only update weather if it's different to avoid unnecessary updates
+                const currentSoilWeather = window.soilMoistureManager.settings.weather;
+                if (currentSoilWeather !== condition) {
+                    window.soilMoistureManager.setWeather(condition);
+                }
             }
             
             console.log(`Weather updated from ${source}:`, this.currentWeather);
