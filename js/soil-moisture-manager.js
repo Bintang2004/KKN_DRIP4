@@ -139,11 +139,6 @@ class SoilMoistureManager {
                     <button class="weather-btn ${this.settings.weather === 'mendung' ? 'active' : ''}" onclick="soilMoistureManager.setWeather('mendung')" title="Evaporasi: -1% per 30 menit">☁️ Mendung</button>
                     <button class="weather-btn ${this.settings.weather === 'hujan' ? 'active' : ''}" onclick="soilMoistureManager.setWeather('hujan')" title="Kelembaban naik ke 75-90%">🌧️ Hujan</button>
                 </div>
-                <div class="water-level-controls" style="margin-top: 16px;">
-                    <button class="control-btn danger" onclick="soilMoistureManager?.emptyMoisture()">
-                        🗑️ Kosongkan Moisture
-                    </button>
-                </div>
             `;
             
             // Insert weather control at the end (after empty moisture button)
