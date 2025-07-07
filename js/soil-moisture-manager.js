@@ -319,9 +319,6 @@ class SoilMoistureManager {
         const nextScheduleElement = document.getElementById('next-schedule');
         if (!nextScheduleElement) return;
         
-        // Force sync with water manager first
-        this.forceSyncScheduledIrrigations();
-        
         const now = new Date();
         const currentTime = now.getHours() * 60 + now.getMinutes();
         
