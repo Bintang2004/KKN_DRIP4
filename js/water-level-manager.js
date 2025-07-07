@@ -421,12 +421,18 @@ class WaterVolumeManager {
         this.saveSettings();
         this.scheduleIrrigations();
         
-        // Force sync with soil moisture manager immediately
         // Sync with soil moisture manager
         this.syncWithSoilManager();
         
         // Update next schedule display
         this.updateNextScheduleDisplay();
+        
+        // Force immediate schedule sync with soil moisture manager
+        setTimeout(() => {
+            if (window.soilMoistureManager) {
+                window.soilMoistureManager.forceSyncScheduledIrrigations();
+            }
+        }, 100);
     }
 
     updateNextScheduleDisplay() {
