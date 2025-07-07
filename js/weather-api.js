@@ -392,6 +392,9 @@ class WeatherAPI {
             // Update environmental data in header
             this.updateEnvironmentalDisplay();
             
+            // Update fallback status indicator
+            this.updateFallbackStatus();
+            
             // Update soil moisture manager with weather condition
             if (window.soilMoistureManager) {
                 const currentSoilWeather = window.soilMoistureManager.settings.weather;
@@ -490,11 +493,17 @@ class WeatherAPI {
         
         this.updateEnvironmentalDisplay();
         
+        // Update fallback status indicator
+        this.updateFallbackStatus();
+        
         if (window.soilMoistureManager) {
             window.soilMoistureManager.setWeather(condition);
         }
         
         console.log('🤖 Intelligent weather fallback generated:', this.currentWeather);
+        
+        // Update fallback status
+        this.updateFallbackStatus();
     }
 
     async fetchDetailedWeatherData() {
@@ -830,4 +839,54 @@ document.addEventListener('DOMContentLoaded', function() {
     window.weatherAPI = weatherAPI;
     
     console.log('🌤️ Real-time weather system initialized');
+    
+    // Update fallback status on initialization
+    setTimeout(() => {
+        if (window.weatherAPI) {
+            window.weatherAPI.updateFallbackStatus();
+        }
+    }, 1000);
 });
+
+// Add method to WeatherAPI class
+WeatherAPI.prototype.updateFallbackStatus = function() {
+    const fallbackStatusElement = document.getElementById('fallback-status');
+    if (!fallbackStatusElement) return;
+    
+    const isUsingFallback = this.currentWeather.source === 'Intelligent Fallback';
+    const enabledAPIs = this.apiSources.filter(source => source.enabled).length;
+    
+    if (isUsingFallback) {
+        fallbackStatusElement.innerHTML = `
+            <span class="status-indicator">🟡</span>
+            <span>Fallback aktif - ${this.currentWeather.description}</span>
+        `;
+        fallbackStatusElement.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05))';
+        fallbackStatusElement.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+        fallbackStatusElement.style.color = '#d97706';
+    } else {
+        fallbackStatusElement.innerHTML = `
+            <span class="status-indicator">🟢</span>
+            <span>Data real-time dari ${this.currentWeather.source}</span>
+        `;
+        fallbackStatusElement.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05))';
+        fallbackStatusElement.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        fallbackStatusElement.style.color = '#059669';
+    }
+    
+    // Update fallback info based on API availability
+    if (enabledAPIs === 0) {
+        const fallbackInfo = document.querySelector('.intelligent-fallback-info');
+        if (fallbackInfo) {
+            fallbackInfo.style.borderColor = '#f59e0b';
+            fallbackInfo.style.background = 'linear-gradient(135deg, #fef3c7, #fde68a)';
+        }
+    }
+};
+
+// Update fallback status when weather data changes
+WeatherAPI.prototype.originalProcessWeatherData = WeatherAPI.prototype.processWeatherData;
+WeatherAPI.prototype.processWeatherData = function(data, source) {
+    this.originalProcessWeatherData(data, source);
+    this.updateFallbackStatus();
+};
