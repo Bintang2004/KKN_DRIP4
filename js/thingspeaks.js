@@ -343,23 +343,17 @@ function createChart(ctx, data, borderColor, unit, format, title) {
                 borderWidth: 3,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 0,
-                pointHoverRadius: 0,
-                pointBackgroundColor: 'transparent',
-                pointBorderColor: 'transparent',
-                pointBorderWidth: 0,
+                pointBackgroundColor: borderColor,
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6,
                 showLine: true,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            elements: {
-                point: {
-                    radius: 0,
-                    hoverRadius: 0
-                }
-            },
             plugins: {
                 legend: {
                     display: false
@@ -373,10 +367,7 @@ function createChart(ctx, data, borderColor, unit, format, title) {
                     cornerRadius: 8,
                     displayColors: false,
                     intersect: false,
-                    mode: 'index',
-                    filter: function(tooltipItem) {
-                        return tooltipItem.dataIndex % 2 === 0; // Show tooltip only for every other point
-                    }
+                    mode: 'index'
                 }
             },
             scales: {
