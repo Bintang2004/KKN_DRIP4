@@ -847,37 +847,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 1000);
 });
-
-// Add method to WeatherAPI class
-WeatherAPI.prototype.updateFallbackStatus = function() {
-    const isUsingFallback = this.currentWeather.source === 'Intelligent Fallback';
-    
-    // Update the main fallback status in irrigation card
-    const fallbackStatusElement = document.getElementById('fallback-status');
-    if (fallbackStatusElement) {
-        if (isUsingFallback) {
-            fallbackStatusElement.innerHTML = `
-                <div class="status-indicator-wrapper">
-                    <span class="status-dot"></span>
-                    <span class="status-text">Fallback aktif - Data simulasi</span>
-                </div>
-            `;
-            fallbackStatusElement.className = 'fallback-status warning';
-        } else {
-            fallbackStatusElement.innerHTML = `
-                <div class="status-indicator-wrapper">
-                    <span class="status-dot"></span>
-                    <span class="status-text">Data real-time dari ${this.currentWeather.source}</span>
-                </div>
-            `;
-            fallbackStatusElement.className = 'fallback-status';
-        }
-    }
-};
-
-// Update fallback status when weather data changes
-WeatherAPI.prototype.originalProcessWeatherData = WeatherAPI.prototype.processWeatherData;
-WeatherAPI.prototype.processWeatherData = function(data, source) {
-    this.originalProcessWeatherData(data, source);
-    this.updateFallbackStatus();
-};
