@@ -27,13 +27,6 @@ class WaterVolumeManager {
         this.setupSoilMoistureSync();
     }
 
-    startCountdown() {
-        // Update countdown every minute
-        this.countdownInterval = setInterval(() => {
-            this.updateCountdownDisplay();
-        }, 60000);
-    }
-
     loadSettings() {
         const saved = localStorage.getItem('waterVolumeSettings');
         if (saved) {
@@ -407,6 +400,13 @@ class WaterVolumeManager {
         return true;
     }
 
+    startCountdown() {
+        // Update countdown every minute
+        this.countdownInterval = setInterval(() => {
+            this.updateCountdownDisplay();
+        }, 60000);
+    }
+
     updateSettings(newSettings) {
         this.settings = { ...this.settings, ...newSettings };
         
@@ -421,12 +421,18 @@ class WaterVolumeManager {
         this.saveSettings();
         this.scheduleIrrigations();
         
-        // Force sync with soil moisture manager immediately
         // Sync with soil moisture manager
         this.syncWithSoilManager();
         
         // Update next schedule display
         this.updateNextScheduleDisplay();
+        
+        // Force immediate schedule sync with soil moisture manager
+        setTimeout(() => {
+            if (window.soilMoistureManager) {
+                window.soilMoistureManager.forceSyncScheduledIrrigations();
+            }
+        }, 100);
     }
 
     updateNextScheduleDisplay() {
