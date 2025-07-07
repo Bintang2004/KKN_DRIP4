@@ -62,10 +62,10 @@ class WaterVolumeManager {
     updateDisplay() {
         // Update water volume display
         const waterVolumeValue = document.getElementById('water-level-value');
-        const percentage = (this.settings.currentLevel / this.settings.tankCapacity * 100).toFixed(1);
+        const percentage = (this.settings.currentLevel / this.settings.tankCapacity * 100);
         
         if (waterVolumeValue) {
-            waterVolumeValue.textContent = `${this.settings.currentLevel.toFixed(1)}L`;
+            waterVolumeValue.textContent = `${this.settings.currentLevel.toFixed(1)}L (${percentage.toFixed(1)}%)`;
         }
 
         // Update status badge
