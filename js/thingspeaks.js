@@ -11,18 +11,23 @@ function updateDateAndTime() {
     const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
     const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
+    // Create date in WITA timezone (UTC+8)
     const now = new Date();
-    const dayName = days[now.getDay()];
-    const day = now.getDate();
-    const monthName = months[now.getMonth()];
-    const year = now.getFullYear();
+    const witaOffset = 8 * 60; // WITA is UTC+8
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const witaTime = new Date(utc + (witaOffset * 60000));
     
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    const seconds = now.getSeconds().toString().padStart(2, '0');
+    const dayName = days[now.getDay()];
+    const day = witaTime.getDate();
+    const monthName = months[witaTime.getMonth()];
+    const year = witaTime.getFullYear();
+    
+    const hours = witaTime.getHours().toString().padStart(2, '0');
+    const minutes = witaTime.getMinutes().toString().padStart(2, '0');
+    const seconds = witaTime.getSeconds().toString().padStart(2, '0');
 
     const formattedDate = `${dayName}, ${day} ${monthName} ${year}`;
-    const formattedTime = `${hours}:${minutes}:${seconds}`;
+    const formattedTime = `${hours}:${minutes}:${seconds} WITA`;
 
     document.getElementById('current-time').textContent = `${formattedDate} - ${formattedTime}`;
 }
@@ -38,8 +43,14 @@ function updateSystemMetrics() {
     
     // Update next schedule
     const now = new Date();
-    const nextSchedule = new Date(now.getTime() + (Math.random() * 8 * 60 * 60 * 1000));
-    document.getElementById('next-schedule').textContent = nextSchedule.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'});
+    const witaOffset = 8 * 60; // WITA is UTC+8
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const witaTime = new Date(utc + (witaOffset * 60000));
+    const nextSchedule = new Date(witaTime.getTime() + (Math.random() * 8 * 60 * 60 * 1000));
+    
+    const hours = nextSchedule.getHours().toString().padStart(2, '0');
+    const minutes = nextSchedule.getMinutes().toString().padStart(2, '0');
+    document.getElementById('next-schedule').textContent = `${hours}:${minutes} WITA`;
 }
 
 // Initialize on page load
