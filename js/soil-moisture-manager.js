@@ -139,9 +139,37 @@ class SoilMoistureManager {
                     <button class="weather-btn ${this.settings.weather === 'mendung' ? 'active' : ''}" onclick="soilMoistureManager.setWeather('mendung')" title="Evaporasi: -1% per 30 menit">☁️ Mendung</button>
                     <button class="weather-btn ${this.settings.weather === 'hujan' ? 'active' : ''}" onclick="soilMoistureManager.setWeather('hujan')" title="Kelembaban naik ke 75-90%">🌧️ Hujan</button>
                 </div>
+                <div class="moisture-control-buttons" style="margin-top: 12px;">
+                    <button class="control-btn danger" onclick="soilMoistureManager?.emptyMoisture()">
+                        🗑️ Kosongkan Moisture
+                    </button>
+                </div>
             `;
             
-            // Insert weather control at the end (after empty moisture button)
+            // Insert weather control after the metric description
+            const metricDescription = soilCard.querySelector('.metric-description');
+            if (metricDescription) {
+                metricDescription.parentNode.insertBefore(weatherControl, metricDescription.nextSibling);
+            } else {
+                soilCard.appendChild(weatherControl);
+            }
+        } else if (existingControl) {
+            // Update existing control to include moisture button
+            const existingButtons = existingControl.querySelector('.moisture-control-buttons');
+            if (!existingButtons) {
+                const moistureButtons = document.createElement('div');
+                moistureButtons.className = 'moisture-control-buttons';
+                moistureButtons.style.marginTop = '12px';
+                moistureButtons.innerHTML = `
+                    <button class="control-btn danger" onclick="soilMoistureManager?.emptyMoisture()">
+                        🗑️ Kosongkan Moisture
+                    </button>
+                `;
+                existingControl.appendChild(moistureButtons);
+            }
+        }
+    }
+
             soilCard.appendChild(weatherControl);
         } else if (existingControl) {
             // If control exists, move it to the end
