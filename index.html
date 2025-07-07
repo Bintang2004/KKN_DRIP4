@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Kurva Kujang 2024</title>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Memuat jQuery dari CDN -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Memuat Chart.js dan adapter waktu -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@latest"></script>
+  </head>
+  <body>
+    <div class="grid-container">
+
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <div class="judul">Air Quality Monitoring</div>
+          <div class="button-group">
+            <button class="toggle-button first" onclick="loadData('daily');setActive(this)">Daily</button>
+            <button class="toggle-button middle" onclick="loadData('weekly');setActive(this)">Weekly</button>
+            <button class="toggle-button last" onclick="loadData('monthly');setActive(this)">Monthly</button>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="text">
+            <div class="nama">PT PUPUK KUJANG</div>
+            <div class="hari" id="hari"></div>
+          </div>
+          <img class="gambar" src="img/LOGO  KKN.png" alt="Logo PT PUPUK KUJANG">
+        </div>
+      </header>
+      <!-- End Header -->
+    
+      <!-- Main -->
+      <main class="main-container">
+        <div class="charts">
+          <div class="charts-card">
+            <div class="chart-title-container">
+              <h2 class="chart-title">Particulate Matter</h2>
+            </div>
+            <canvas id="chart1"></canvas>
+            <div class="chart-message" id="chart1-message"></div>
+            <div class="average-container" id="average1">
+              <span class="average-label">Rerata: </span>
+              <span class="average-value"></span>
+            </div>
+          </div>
+          <div class="charts-card">
+            <div class="chart-title-container">
+              <h2 class="chart-title">Gas NH3</h2>
+            </div>
+            <canvas id="chart2"></canvas>
+            <div class="chart-message" id="chart2-message"></div>
+            <div class="average-container" id="average2">
+              <span class="average-label">Rerata: </span>
+              <span class="average-value"></span>
+            </div>
+          </div>
+          <div class="charts-card">
+            <div class="chart-title-container">
+              <h2 class="chart-title">Gas CO2</h2>
+            </div>
+            <canvas id="chart3"></canvas>
+            <div class="chart-message" id="chart3-message"></div>
+            <div class="average-container" id="average3">
+              <span class="average-label">Rerata: </span>
+              <span class="average-value"></span>
+            </div>
+          </div>
+          <div class="charts-card">
+            <div class="chart-title-container">
+              <h2 class="chart-title">Gas NO2</h2>
+            </div>
+            <canvas id="chart4"></canvas>
+            <div class="chart-message" id="chart4-message"></div>
+            <div class="average-container" id="average4">
+              <span class="average-label">Rerata: </span>
+              <span class="average-value"></span>
+            </div>
+          </div>
+          <div class="charts-card">
+            <div class="chart-title-container">
+              <h2 class="chart-title">Gas CH4</h2>
+            </div>
+            <canvas id="chart5"></canvas>
+            <div class="chart-message" id="chart5-message"></div>
+            <div class="average-container" id="average5">
+              <span class="average-label">Rerata: </span>
+              <span class="average-value"></span>
+            </div>
+          </div>
+          <div class="charts-card">
+            <div class="chart-title-container">
+              <h2 class="chart-title">Gas SO2</h2>
+            </div>
+            <canvas id="chart6"></canvas>
+            <div class="chart-message" id="chart6-message"></div>
+            <div class="average-container" id="average6">
+              <span class="average-label">Rerata: </span>
+              <span class="average-value"></span>
+            </div>
+          </div>
+        </div>
+        <div class="footer">
+          <div class="footer-left">
+            <div class="dropdown">
+              <label for="location">Pilih Lokasi:</label>
+              <select name="location" id="location">
+                <option value="location1">Lokasi 1</option>
+                <option value="location2">Lokasi 2</option>
+                <option value="location3">Lokasi 3</option>
+                <option value="location4">Lokasi 4</option>
+                <option value="location5">Lokasi 5</option>
+                <option value="location6">Lokasi 6</option>
+                <option value="location7">Lokasi 7</option>
+              </select>
+            </div>
+          </div>
+        
+          <div class="footer-center">
+            <p>&copy; Citta Bulukumba. All rights reserved.</p>
+          </div>
+        
+          <div class="footer-right">
+            <button id="download-report" class = "toggle-button">Download CSV</button>
+          </div>
+        </div>
+      </main>
+      <!-- End Main -->
+    
+    </div>
+    
+    <!-- Scripts -->
+    <!-- Custom JS -->
+    <script src="js/thingspeaks.js"></script>
+    <script src="js/download.js"></script>
+  </body>
+</html>
