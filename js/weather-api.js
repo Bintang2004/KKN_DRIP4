@@ -858,28 +858,28 @@ WeatherAPI.prototype.updateFallbackStatus = function() {
     
     if (isUsingFallback) {
         fallbackStatusElement.innerHTML = `
-            <span class="status-indicator">🟡</span>
-            <span>Fallback aktif - ${this.currentWeather.description}</span>
+            <div class="status-indicator-wrapper">
+                <span class="status-dot"></span>
+                <span class="status-text">Fallback aktif - Data simulasi</span>
+            </div>
         `;
-        fallbackStatusElement.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05))';
-        fallbackStatusElement.style.borderColor = 'rgba(245, 158, 11, 0.3)';
-        fallbackStatusElement.style.color = '#d97706';
+        fallbackStatusElement.className = 'fallback-status warning';
     } else {
         fallbackStatusElement.innerHTML = `
-            <span class="status-indicator">🟢</span>
-            <span>Data real-time dari ${this.currentWeather.source}</span>
+            <div class="status-indicator-wrapper">
+                <span class="status-dot"></span>
+                <span class="status-text">Data real-time dari ${this.currentWeather.source}</span>
+            </div>
         `;
-        fallbackStatusElement.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05))';
-        fallbackStatusElement.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-        fallbackStatusElement.style.color = '#059669';
+        fallbackStatusElement.className = 'fallback-status';
     }
     
     // Update fallback info based on API availability
     if (enabledAPIs === 0) {
         const fallbackInfo = document.querySelector('.intelligent-fallback-info');
         if (fallbackInfo) {
-            fallbackInfo.style.borderColor = '#f59e0b';
-            fallbackInfo.style.background = 'linear-gradient(135deg, #fef3c7, #fde68a)';
+            fallbackInfo.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+            fallbackInfo.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.05))';
         }
     }
 };
